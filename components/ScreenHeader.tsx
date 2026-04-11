@@ -31,24 +31,24 @@ export function ScreenHeader({
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'space-between',
-          paddingLeft: 16,
-          paddingRight: 20,
-          paddingTop: 4,
-          paddingBottom: 4,
+          paddingLeft: 8,
+          paddingRight: 16,
+          paddingTop: 2,
+          paddingBottom: 2,
         }}
       >
-        {showLogo ? <AppLogo size="xl" variant="transparent" /> : <View />}
+        {showLogo ? <AppLogo size="lg" variant="transparent" /> : <View />}
 
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           {rightAction}
 
           {onNotificationPress && (
             <TouchableOpacity
               onPress={onNotificationPress}
               style={{
-                width: 44,
-                height: 44,
-                borderRadius: 22,
+                width: 36,
+                height: 36,
+                borderRadius: 18,
                 backgroundColor: COLORS.white,
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -59,21 +59,21 @@ export function ScreenHeader({
             >
               <Ionicons
                 name="notifications-outline"
-                size={21}
+                size={17}
                 color={COLORS.navy}
               />
               {notificationBadge !== undefined && notificationBadge > 0 && (
                 <View
                   style={{
                     position: 'absolute',
-                    top: 8,
-                    right: 8,
-                    minWidth: 16,
-                    height: 16,
-                    paddingHorizontal: 4,
-                    borderRadius: 8,
+                    top: 5,
+                    right: 5,
+                    minWidth: 14,
+                    height: 14,
+                    paddingHorizontal: 3,
+                    borderRadius: 7,
                     backgroundColor: COLORS.danger,
-                    borderWidth: 2,
+                    borderWidth: 1.5,
                     borderColor: COLORS.white,
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -82,7 +82,7 @@ export function ScreenHeader({
                   <Text
                     style={{
                       fontFamily: FONTS.bold,
-                      fontSize: 9,
+                      fontSize: 8,
                       color: COLORS.white,
                     }}
                   >
@@ -97,9 +97,9 @@ export function ScreenHeader({
             <TouchableOpacity
               onPress={onLogoutPress}
               style={{
-                width: 44,
-                height: 44,
-                borderRadius: 22,
+                width: 36,
+                height: 36,
+                borderRadius: 18,
                 backgroundColor: COLORS.white,
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -110,7 +110,7 @@ export function ScreenHeader({
             >
               <Ionicons
                 name="log-out-outline"
-                size={20}
+                size={16}
                 color={COLORS.navy}
               />
             </TouchableOpacity>
@@ -120,13 +120,14 @@ export function ScreenHeader({
 
       {/* Title section */}
       {(title || subtitle) && (
-        <View style={{ paddingHorizontal: 24, marginTop: 12, marginBottom: 18 }}>
+        <View style={{ paddingHorizontal: 20, marginTop: 8, marginBottom: 14 }}>
           {subtitle && (
             <Text
               style={{
                 fontFamily: FONTS.medium,
-                fontSize: 13,
+                fontSize: 11,
                 color: COLORS.gray500,
+                letterSpacing: 0.2,
               }}
             >
               {subtitle}
@@ -136,10 +137,10 @@ export function ScreenHeader({
             <Text
               style={{
                 fontFamily: FONTS.black,
-                fontSize: 26,
+                fontSize: 21,
                 color: COLORS.navy,
-                marginTop: subtitle ? 2 : 0,
-                letterSpacing: -0.4,
+                marginTop: subtitle ? 1 : 0,
+                letterSpacing: -0.3,
               }}
             >
               {title}

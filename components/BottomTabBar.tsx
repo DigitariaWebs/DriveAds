@@ -28,18 +28,18 @@ export function BottomTabBar<K extends string>({
     <View
       style={{
         position: 'absolute',
-        left: 16,
-        right: 16,
-        bottom: Math.max(insets.bottom, 12),
+        left: 20,
+        right: 20,
+        bottom: Math.max(insets.bottom, 10),
       }}
     >
       <View
         style={{
           flexDirection: 'row',
           backgroundColor: COLORS.white,
-          borderRadius: RADIUS.xxl,
-          paddingVertical: 10,
-          paddingHorizontal: 8,
+          borderRadius: RADIUS.full,
+          paddingVertical: 6,
+          paddingHorizontal: 6,
           ...SHADOWS.lg,
           borderWidth: 1,
           borderColor: COLORS.gray100,
@@ -56,14 +56,14 @@ export function BottomTabBar<K extends string>({
                 flex: 1,
                 alignItems: 'center',
                 justifyContent: 'center',
-                paddingVertical: 6,
+                paddingVertical: 3,
               }}
             >
               <View
                 style={{
-                  width: 40,
-                  height: 34,
-                  borderRadius: RADIUS.md,
+                  width: 44,
+                  height: 44,
+                  borderRadius: 22,
                   backgroundColor: active ? COLORS.navy : 'transparent',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -71,7 +71,7 @@ export function BottomTabBar<K extends string>({
               >
                 <Ionicons
                   name={tab.icon}
-                  size={20}
+                  size={19}
                   color={active ? COLORS.white : COLORS.gray400}
                 />
                 {tab.badge !== undefined && tab.badge > 0 && (
@@ -80,10 +80,10 @@ export function BottomTabBar<K extends string>({
                       position: 'absolute',
                       top: -2,
                       right: -2,
-                      minWidth: 16,
-                      height: 16,
-                      paddingHorizontal: 4,
-                      borderRadius: 8,
+                      minWidth: 14,
+                      height: 14,
+                      paddingHorizontal: 3,
+                      borderRadius: 7,
                       backgroundColor: COLORS.danger,
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -94,9 +94,9 @@ export function BottomTabBar<K extends string>({
                     <Text
                       style={{
                         fontFamily: FONTS.bold,
-                        fontSize: 9,
+                        fontSize: 8,
                         color: COLORS.white,
-                        lineHeight: Platform.OS === 'ios' ? 11 : 13,
+                        lineHeight: Platform.OS === 'ios' ? 10 : 12,
                       }}
                     >
                       {tab.badge > 9 ? '9+' : tab.badge}
@@ -107,9 +107,9 @@ export function BottomTabBar<K extends string>({
               <Text
                 style={{
                   fontFamily: active ? FONTS.bold : FONTS.medium,
-                  fontSize: 10,
+                  fontSize: 9,
                   color: active ? COLORS.navy : COLORS.gray400,
-                  marginTop: 4,
+                  marginTop: 2,
                 }}
               >
                 {tab.label}

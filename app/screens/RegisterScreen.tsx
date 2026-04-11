@@ -221,7 +221,7 @@ export function RegisterScreen({ onComplete, onBackToLogin }: RegisterScreenProp
         >
           <Ionicons name="chevron-back" size={20} color={COLORS.navy} />
         </TouchableOpacity>
-        <AppLogo size="md" />
+        <AppLogo size="xl" />
         <View style={{ width: 42 }} />
       </View>
 

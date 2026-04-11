@@ -4,6 +4,8 @@ type IoniconName = keyof typeof Ionicons.glyphMap;
 
 export type CampaignStatus = 'available' | 'active' | 'completed' | 'upcoming';
 
+export type TrackingMode = 'gps' | 'manual';
+
 export type Campaign = {
   id: string;
   brand: string;
@@ -24,6 +26,9 @@ export type Campaign = {
   assignedDriverIds?: string[];
   icon: IoniconName;
   status: CampaignStatus;
+  trackingMode?: TrackingMode;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  heroImage?: any;
 };
 
 export const initialCampaigns: Campaign[] = [
@@ -75,15 +80,20 @@ export const initialCampaigns: Campaign[] = [
     description: 'Opération été — fraîcheur et visibilité urbaine.',
     city: 'Île-de-France',
     zones: ['Paris', 'Banlieue Nord', 'Banlieue Sud'],
-    startDate: '22 avril',
-    endDate: '02 mai',
-    durationDays: 10,
+    startDate: '01 avril',
+    endDate: '21 avril',
+    durationDays: 20,
     reward: 280,
-    driversAssigned: 1,
-    driversNeeded: 6,
-    assignedDriverIds: ['d7'],
+    progress: 0.55,
+    kmDone: 1100,
+    kmTotal: 2000,
+    driversAssigned: 3,
+    driversNeeded: 3,
+    assignedDriverIds: ['d1', 'd4', 'd7'],
     icon: 'cafe',
-    status: 'available',
+    status: 'active',
+    trackingMode: 'gps',
+    heroImage: require('../assets/SUV Toyota RAV4 aux couleurs Coca-Cola.png'),
   },
   {
     id: 'c4',
@@ -269,6 +279,13 @@ export type Company = {
   campaignsCount: number;
   status: 'validated' | 'pending';
   icon: IoniconName;
+  description: string;
+  founded: string;
+  headquarters: string;
+  website: string;
+  budgetTotal: number;
+  employees: string;
+  gallery: string[];
 };
 
 export const companies: Company[] = [
@@ -281,6 +298,18 @@ export const companies: Company[] = [
     campaignsCount: 3,
     status: 'validated',
     icon: 'shirt',
+    description:
+      "Nike est le leader mondial de l'équipement sportif et des chaussures de sport. La filiale française lance régulièrement des campagnes de street-marketing ciblant les zones urbaines dynamiques.",
+    founded: '1964',
+    headquarters: 'Beaverton, Oregon',
+    website: 'nike.com',
+    budgetTotal: 12500,
+    employees: '76 000+',
+    gallery: [
+      'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?auto=format&fit=crop&w=800&q=80',
+    ],
   },
   {
     id: 'e2',
@@ -291,6 +320,18 @@ export const companies: Company[] = [
     campaignsCount: 2,
     status: 'validated',
     icon: 'shirt-outline',
+    description:
+      "Adidas, la marque aux trois bandes, privilégie les campagnes publicitaires street et urban pour promouvoir ses dernières collections auprès d'une audience jeune et active.",
+    founded: '1949',
+    headquarters: 'Herzogenaurach, Allemagne',
+    website: 'adidas.com',
+    budgetTotal: 8200,
+    employees: '62 000+',
+    gallery: [
+      'https://images.unsplash.com/photo-1491553895911-0055eca6402d?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1608231387042-66d1773070a5?auto=format&fit=crop&w=800&q=80',
+    ],
   },
   {
     id: 'e3',
@@ -301,6 +342,18 @@ export const companies: Company[] = [
     campaignsCount: 1,
     status: 'pending',
     icon: 'cafe',
+    description:
+      "Coca-Cola France utilise DriveAds pour diffuser ses campagnes estivales à travers l'Île-de-France. L'objectif : maximiser la visibilité de la marque sur les routes les plus fréquentées.",
+    founded: '1886',
+    headquarters: 'Atlanta, USA',
+    website: 'coca-cola.com',
+    budgetTotal: 5600,
+    employees: '700 000+',
+    gallery: [
+      'https://images.unsplash.com/photo-1554866585-cd94860890b7?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1561758033-d89a9ad46330?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=800&q=80',
+    ],
   },
   {
     id: 'e4',
@@ -311,6 +364,18 @@ export const companies: Company[] = [
     campaignsCount: 1,
     status: 'validated',
     icon: 'car-sport',
+    description:
+      "Le constructeur français Renault mise sur DriveAds pour promouvoir sa nouvelle gamme électrique à travers les grandes villes de France.",
+    founded: '1899',
+    headquarters: 'Boulogne-Billancourt',
+    website: 'renault.com',
+    budgetTotal: 10400,
+    employees: '111 000+',
+    gallery: [
+      'https://images.unsplash.com/photo-1617469767053-d3b523a0b982?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1553440569-bcc63803a83d?auto=format&fit=crop&w=800&q=80',
+    ],
   },
   {
     id: 'e5',
@@ -321,8 +386,76 @@ export const companies: Company[] = [
     campaignsCount: 1,
     status: 'pending',
     icon: 'phone-portrait',
+    description:
+      'Samsung Electronics France lance ses campagnes autour du lancement des derniers smartphones et produits connectés à travers les zones urbaines dynamiques.',
+    founded: '1938',
+    headquarters: 'Suwon, Corée du Sud',
+    website: 'samsung.com',
+    budgetTotal: 9200,
+    employees: '270 000+',
+    gallery: [
+      'https://images.unsplash.com/photo-1567581935884-3349723552ca?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=800&q=80',
+    ],
   },
 ];
+
+export type TrackingEvent = {
+  id: string;
+  time: string;
+  icon: IoniconName;
+  color: 'success' | 'info' | 'warning' | 'navy';
+  text: string;
+  driver?: string;
+};
+
+export const trackingEventsFor = (campaignId: string): TrackingEvent[] => {
+  // Shared mock activity feed — real impl would be per-campaign
+  void campaignId;
+  return [
+    {
+      id: 'ev1',
+      time: '14:22',
+      icon: 'location',
+      color: 'success',
+      text: 'Nouveau point visité · Gare de Lyon',
+      driver: 'Marie Dubois',
+    },
+    {
+      id: 'ev2',
+      time: '14:05',
+      icon: 'pause-circle',
+      color: 'warning',
+      text: "En pause · Station Shell A6",
+      driver: 'Emma Moreau',
+    },
+    {
+      id: 'ev3',
+      time: '13:48',
+      icon: 'speedometer',
+      color: 'navy',
+      text: '+12 km parcourus en 20 min',
+      driver: 'Thomas Bernard',
+    },
+    {
+      id: 'ev4',
+      time: '13:30',
+      icon: 'checkmark-circle',
+      color: 'success',
+      text: 'Zone Paris Centre complétée',
+      driver: 'Marie Dubois',
+    },
+    {
+      id: 'ev5',
+      time: '12:12',
+      icon: 'play-circle',
+      color: 'info',
+      text: "Début de tournée",
+      driver: 'Emma Moreau',
+    },
+  ];
+};
 
 export const driverStats = {
   name: 'Marie Dubois',

@@ -4,6 +4,8 @@ import { Screen } from '../../components/Screen';
 import { BottomTabBar, TabDef } from '../../components/BottomTabBar';
 import { CreateCampaignModal } from '../../components/modals/CreateCampaignModal';
 import { AssignDriversModal } from '../../components/modals/AssignDriversModal';
+import { CampaignTrackingModal } from '../../components/modals/CampaignTrackingModal';
+import { CompanyDetailModal } from '../../components/modals/CompanyDetailModal';
 import { AdminHomeTab } from './admin/HomeTab';
 import { AdminDriversTab } from './admin/DriversTab';
 import { AdminCampaignsTab } from './admin/CampaignsTab';
@@ -13,6 +15,8 @@ import {
   companies,
   initialCampaigns,
   Campaign,
+  Company,
+  TrackingMode,
 } from '../../mocks/data';
 import { COLORS } from '../../constants/theme';
 
@@ -27,6 +31,8 @@ export function AdminDashboardScreen({ onLogout }: AdminDashboardScreenProps) {
   const [campaignList, setCampaignList] = useState<Campaign[]>(initialCampaigns);
   const [createVisible, setCreateVisible] = useState(false);
   const [assignCampaign, setAssignCampaign] = useState<Campaign | null>(null);
+  const [trackingCampaign, setTrackingCampaign] = useState<Campaign | null>(null);
+  const [detailCompany, setDetailCompany] = useState<Company | null>(null);
 
   const pendingDrivers = drivers.filter((d) => d.status === 'pending').length;
   const pendingCompanies = companies.filter((c) => c.status === 'pending').length;
@@ -76,6 +82,15 @@ export function AdminDashboardScreen({ onLogout }: AdminDashboardScreenProps) {
     );
   };
 
+  const handleChangeTrackingMode = (campaignId: string, mode: TrackingMode) => {
+    setCampaignList((prev) =>
+      prev.map((c) => (c.id === campaignId ? { ...c, trackingMode: mode } : c))
+    );
+    setTrackingCampaign((prev) =>
+      prev && prev.id === campaignId ? { ...prev, trackingMode: mode } : prev
+    );
+  };
+
   return (
     <Screen backgroundColor={COLORS.navyTint}>
       <View style={{ flex: 1 }}>
@@ -96,9 +111,15 @@ export function AdminDashboardScreen({ onLogout }: AdminDashboardScreenProps) {
             onLogout={handleLogout}
             onCreateCampaign={() => setCreateVisible(true)}
             onAssignCampaign={(c) => setAssignCampaign(c)}
+            onTrackCampaign={(c) => setTrackingCampaign(c)}
           />
         )}
-        {active === 'companies' && <AdminCompaniesTab onLogout={handleLogout} />}
+        {active === 'companies' && (
+          <AdminCompaniesTab
+            onLogout={handleLogout}
+            onOpenCompany={(c) => setDetailCompany(c)}
+          />
+        )}
       </View>
 
       <BottomTabBar tabs={tabs} activeKey={active} onChange={setActive} />
@@ -115,6 +136,21 @@ export function AdminDashboardScreen({ onLogout }: AdminDashboardScreenProps) {
         drivers={drivers}
         onClose={() => setAssignCampaign(null)}
         onConfirm={handleAssignDrivers}
+      />
+
+      <CampaignTrackingModal
+        visible={trackingCampaign !== null}
+        campaign={trackingCampaign}
+        drivers={drivers}
+        onClose={() => setTrackingCampaign(null)}
+        onChangeMode={handleChangeTrackingMode}
+      />
+
+      <CompanyDetailModal
+        visible={detailCompany !== null}
+        company={detailCompany}
+        campaigns={campaignList}
+        onClose={() => setDetailCompany(null)}
       />
     </Screen>
   );

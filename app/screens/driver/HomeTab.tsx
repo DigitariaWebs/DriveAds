@@ -30,7 +30,7 @@ export function HomeTab({
       contentContainerStyle={{ paddingBottom: 120 }}
     >
       <ScreenHeader
-        subtitle="Bonjour 👋"
+        subtitle="Bonjour"
         title={driverStats.name}
         notificationBadge={unreadCount}
         onNotificationPress={onOpenNotifications}
@@ -38,8 +38,8 @@ export function HomeTab({
       />
 
       {/* Earnings hero */}
-      <View style={{ paddingHorizontal: 24, marginBottom: 20 }}>
-        <Card variant="navy" padding="xxl">
+      <View style={{ paddingHorizontal: 20, marginBottom: 16 }}>
+        <Card variant="navy" padding="xl">
           <View
             style={{
               flexDirection: 'row',
@@ -51,7 +51,7 @@ export function HomeTab({
               <Text
                 style={{
                   fontFamily: FONTS.medium,
-                  fontSize: 11,
+                  fontSize: 10,
                   color: 'rgba(255,255,255,0.7)',
                   letterSpacing: 1,
                   textTransform: 'uppercase',
@@ -62,10 +62,10 @@ export function HomeTab({
               <Text
                 style={{
                   fontFamily: FONTS.black,
-                  fontSize: 40,
+                  fontSize: 32,
                   color: COLORS.white,
-                  marginTop: 8,
-                  letterSpacing: -1,
+                  marginTop: 6,
+                  letterSpacing: -0.8,
                 }}
               >
                 {driverStats.monthlyEarnings} €
@@ -97,9 +97,9 @@ export function HomeTab({
             </View>
             <View
               style={{
-                width: 64,
-                height: 64,
-                borderRadius: 32,
+                width: 52,
+                height: 52,
+                borderRadius: 26,
                 backgroundColor: 'rgba(255,255,255,0.12)',
                 borderWidth: 1,
                 borderColor: 'rgba(255,255,255,0.2)',
@@ -107,7 +107,7 @@ export function HomeTab({
                 justifyContent: 'center',
               }}
             >
-              <Ionicons name="wallet-outline" size={30} color={COLORS.white} />
+              <Ionicons name="wallet-outline" size={24} color={COLORS.white} />
             </View>
           </View>
 
@@ -132,7 +132,7 @@ export function HomeTab({
       </View>
 
       {/* Quick stats */}
-      <View style={{ paddingHorizontal: 24, marginBottom: 24 }}>
+      <View style={{ paddingHorizontal: 20, marginBottom: 18 }}>
         <View style={{ flexDirection: 'row', gap: 12 }}>
           <StatCard
             icon="flash"
@@ -151,7 +151,7 @@ export function HomeTab({
 
       {/* Active campaign */}
       {activeCampaign && (
-        <View style={{ paddingHorizontal: 24, marginBottom: 24 }}>
+        <View style={{ paddingHorizontal: 20, marginBottom: 18 }}>
           <View
             style={{
               flexDirection: 'row',
@@ -160,7 +160,7 @@ export function HomeTab({
               marginBottom: 14,
             }}
           >
-            <Text style={{ fontFamily: FONTS.bold, fontSize: 18, color: COLORS.navy }}>
+            <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: COLORS.navy }}>
               Campagne en cours
             </Text>
             <Badge variant="success" icon="radio-button-on">
@@ -285,7 +285,7 @@ export function HomeTab({
             marginBottom: 14,
           }}
         >
-          <Text style={{ fontFamily: FONTS.bold, fontSize: 18, color: COLORS.navy }}>
+          <Text style={{ fontFamily: FONTS.bold, fontSize: 15, color: COLORS.navy }}>
             Nouvelles opportunités
           </Text>
           <TouchableOpacity onPress={onOpenCampaigns}>

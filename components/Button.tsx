@@ -30,9 +30,9 @@ const SIZE_MAP: Record<
   Size,
   { paddingVertical: number; paddingHorizontal: number; fontSize: number; iconSize: number }
 > = {
-  sm: { paddingVertical: 10, paddingHorizontal: 16, fontSize: 13, iconSize: 16 },
-  md: { paddingVertical: 14, paddingHorizontal: 20, fontSize: 15, iconSize: 18 },
-  lg: { paddingVertical: 18, paddingHorizontal: 24, fontSize: 16, iconSize: 20 },
+  sm: { paddingVertical: 8, paddingHorizontal: 12, fontSize: 12, iconSize: 14 },
+  md: { paddingVertical: 12, paddingHorizontal: 18, fontSize: 14, iconSize: 16 },
+  lg: { paddingVertical: 16, paddingHorizontal: 22, fontSize: 15, iconSize: 18 },
 };
 
 export function Button({

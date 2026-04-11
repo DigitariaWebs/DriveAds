@@ -20,6 +20,7 @@ interface AdminCampaignsTabProps {
   onLogout: () => void;
   onCreateCampaign: () => void;
   onAssignCampaign: (campaign: Campaign) => void;
+  onTrackCampaign: (campaign: Campaign) => void;
 }
 
 type Filter = 'all' | 'active' | 'available' | 'completed';
@@ -35,8 +36,8 @@ const statusToBadge: Record<
   CampaignStatus,
   { variant: 'success' | 'navy' | 'neutral' | 'info'; label: string }
 > = {
-  active: { variant: 'success', label: 'EN COURS' },
-  available: { variant: 'navy', label: 'DISPONIBLE' },
+  active: { variant: 'success', label: 'ACTIVE' },
+  available: { variant: 'navy', label: 'DISPO' },
   completed: { variant: 'neutral', label: 'TERMINÉE' },
   upcoming: { variant: 'info', label: 'À VENIR' },
 };
@@ -46,6 +47,7 @@ export function AdminCampaignsTab({
   onLogout,
   onCreateCampaign,
   onAssignCampaign,
+  onTrackCampaign,
 }: AdminCampaignsTabProps) {
   const [filter, setFilter] = useState<Filter>('all');
 
@@ -64,15 +66,15 @@ export function AdminCampaignsTab({
           alignItems: 'center',
           justifyContent: 'space-between',
           paddingHorizontal: 24,
-          marginTop: 12,
-          marginBottom: 18,
+          marginTop: 10,
+          marginBottom: 14,
         }}
       >
         <View style={{ flex: 1 }}>
           <Text
             style={{
               fontFamily: FONTS.medium,
-              fontSize: 13,
+              fontSize: 12,
               color: COLORS.gray500,
             }}
           >
@@ -81,7 +83,7 @@ export function AdminCampaignsTab({
           <Text
             style={{
               fontFamily: FONTS.black,
-              fontSize: 26,
+              fontSize: 24,
               color: COLORS.navy,
               marginTop: 2,
               letterSpacing: -0.4,
@@ -96,19 +98,19 @@ export function AdminCampaignsTab({
           style={{
             flexDirection: 'row',
             alignItems: 'center',
-            paddingHorizontal: 16,
-            height: 44,
+            paddingHorizontal: 14,
+            height: 38,
             borderRadius: RADIUS.full,
             backgroundColor: COLORS.navy,
           }}
         >
-          <Ionicons name="add" size={18} color={COLORS.white} />
+          <Ionicons name="add" size={16} color={COLORS.white} />
           <Text
             style={{
               fontFamily: FONTS.bold,
-              fontSize: 13,
+              fontSize: 12,
               color: COLORS.white,
-              marginLeft: 5,
+              marginLeft: 4,
             }}
           >
             Créer
@@ -117,11 +119,11 @@ export function AdminCampaignsTab({
       </View>
 
       {/* Filters */}
-      <View style={{ paddingLeft: 24, marginBottom: 16 }}>
+      <View style={{ paddingLeft: 24, marginBottom: 12 }}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingRight: 24, gap: 8 }}
+          contentContainerStyle={{ paddingRight: 24, gap: 6 }}
         >
           {FILTERS.map((f) => {
             const active = filter === f.key;
@@ -131,8 +133,8 @@ export function AdminCampaignsTab({
                 onPress={() => setFilter(f.key)}
                 activeOpacity={0.85}
                 style={{
-                  paddingHorizontal: 16,
-                  paddingVertical: 9,
+                  paddingHorizontal: 13,
+                  paddingVertical: 7,
                   borderRadius: RADIUS.full,
                   backgroundColor: active ? COLORS.navy : COLORS.white,
                   borderWidth: 1,
@@ -142,7 +144,7 @@ export function AdminCampaignsTab({
                 <Text
                   style={{
                     fontFamily: active ? FONTS.bold : FONTS.medium,
-                    fontSize: 13,
+                    fontSize: 12,
                     color: active ? COLORS.white : COLORS.gray600,
                   }}
                 >
@@ -160,13 +162,14 @@ export function AdminCampaignsTab({
         contentContainerStyle={{
           paddingHorizontal: 24,
           paddingBottom: 120,
-          gap: 12,
+          gap: 10,
         }}
         showsVerticalScrollIndicator={false}
         renderItem={({ item }) => (
           <AdminCampaignCard
             campaign={item}
             onAssign={() => onAssignCampaign(item)}
+            onTrack={() => onTrackCampaign(item)}
           />
         )}
       />
@@ -177,136 +180,243 @@ export function AdminCampaignsTab({
 function AdminCampaignCard({
   campaign,
   onAssign,
+  onTrack,
 }: {
   campaign: Campaign;
   onAssign: () => void;
+  onTrack: () => void;
 }) {
   const badge = statusToBadge[campaign.status];
   const fillRatio =
     campaign.driversNeeded !== undefined && campaign.driversNeeded > 0
       ? (campaign.driversAssigned ?? 0) / campaign.driversNeeded
       : 0;
+  const progress = campaign.progress ?? 0;
+  const isActive = campaign.status === 'active';
 
   return (
-    <Card padding="xl">
-      <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-        <BrandLogo domain={campaign.domain} name={campaign.brand} size="lg" />
-        <View style={{ flex: 1, marginLeft: 14 }}>
-          <Text
-            style={{
-              fontFamily: FONTS.black,
-              fontSize: 16,
-              color: COLORS.navy,
-              letterSpacing: -0.2,
-            }}
-          >
-            {campaign.brand}
-          </Text>
+    <Card padding="lg">
+      {/* Header row — compact */}
+      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <BrandLogo domain={campaign.domain} name={campaign.brand} size="md" />
+        <View style={{ flex: 1, marginLeft: 12 }}>
           <View
             style={{
               flexDirection: 'row',
               alignItems: 'center',
-              marginTop: 3,
+              justifyContent: 'space-between',
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: FONTS.black,
+                fontSize: 14,
+                color: COLORS.navy,
+                letterSpacing: -0.2,
+                flex: 1,
+                marginRight: 6,
+              }}
+              numberOfLines={1}
+            >
+              {campaign.brand}
+            </Text>
+            <Badge variant={badge.variant}>{badge.label}</Badge>
+          </View>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              marginTop: 2,
             }}
           >
             <Ionicons
               name="location-outline"
-              size={11}
+              size={10}
               color={COLORS.gray500}
             />
             <Text
               style={{
                 fontFamily: FONTS.medium,
-                fontSize: 11,
+                fontSize: 10,
                 color: COLORS.gray500,
-                marginLeft: 3,
+                marginLeft: 2,
               }}
             >
               {campaign.city}
             </Text>
-          </View>
-          <View style={{ marginTop: 8 }}>
-            <Badge variant={badge.variant}>{badge.label}</Badge>
+            <Text
+              style={{
+                marginHorizontal: 4,
+                color: COLORS.gray300,
+                fontSize: 10,
+              }}
+            >
+              •
+            </Text>
+            <Ionicons
+              name="cash-outline"
+              size={10}
+              color={COLORS.gray500}
+            />
+            <Text
+              style={{
+                fontFamily: FONTS.bold,
+                fontSize: 10,
+                color: COLORS.navy,
+                marginLeft: 2,
+              }}
+            >
+              {campaign.reward} €
+            </Text>
+            <Text
+              style={{
+                marginHorizontal: 4,
+                color: COLORS.gray300,
+                fontSize: 10,
+              }}
+            >
+              •
+            </Text>
+            <Ionicons
+              name="calendar-outline"
+              size={10}
+              color={COLORS.gray500}
+            />
+            <Text
+              style={{
+                fontFamily: FONTS.medium,
+                fontSize: 10,
+                color: COLORS.gray500,
+                marginLeft: 2,
+              }}
+            >
+              {campaign.durationDays}j
+            </Text>
           </View>
         </View>
       </View>
 
-      {/* Stats grid */}
-      <View style={{ flexDirection: 'row', gap: 8, marginTop: 16 }}>
-        <AdminMetric icon="cash-outline" label="Budget" value={`${campaign.reward} €`} />
-        <AdminMetric
-          icon="calendar-outline"
-          label="Durée"
-          value={`${campaign.durationDays} j`}
-        />
-        <AdminMetric
-          icon="people-outline"
-          label="Chauffeurs"
-          value={`${campaign.driversAssigned ?? 0}/${campaign.driversNeeded ?? 0}`}
-        />
-      </View>
-
-      {/* Assignment progress */}
-      {campaign.driversNeeded !== undefined && (
-        <View style={{ marginTop: 14 }}>
-          <View
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              marginBottom: 6,
-            }}
-          >
+      {/* Progress section */}
+      <View style={{ marginTop: 10 }}>
+        {/* Drivers assignment */}
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            marginBottom: 4,
+          }}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Ionicons name="people-outline" size={11} color={COLORS.gray500} />
             <Text
               style={{
                 fontFamily: FONTS.semibold,
-                fontSize: 11,
+                fontSize: 10,
                 color: COLORS.gray500,
+                marginLeft: 3,
               }}
             >
-              Assignation
-            </Text>
-            <Text
-              style={{
-                fontFamily: FONTS.black,
-                fontSize: 11,
-                color: COLORS.navy,
-              }}
-            >
-              {Math.round(fillRatio * 100)}%
+              Chauffeurs
             </Text>
           </View>
-          <View
+          <Text
             style={{
-              height: 7,
-              backgroundColor: COLORS.gray100,
-              borderRadius: RADIUS.full,
-              overflow: 'hidden',
+              fontFamily: FONTS.black,
+              fontSize: 10,
+              color: COLORS.navy,
             }}
           >
+            {campaign.driversAssigned ?? 0} / {campaign.driversNeeded ?? 0}
+          </Text>
+        </View>
+        <View
+          style={{
+            height: 5,
+            backgroundColor: COLORS.gray100,
+            borderRadius: RADIUS.full,
+            overflow: 'hidden',
+          }}
+        >
+          <View
+            style={{
+              width: `${fillRatio * 100}%`,
+              height: '100%',
+              backgroundColor: fillRatio >= 1 ? COLORS.success : COLORS.navy,
+            }}
+          />
+        </View>
+
+        {/* Active progress (km) */}
+        {isActive && (
+          <>
             <View
               style={{
-                width: `${fillRatio * 100}%`,
-                height: '100%',
-                backgroundColor:
-                  fillRatio >= 1 ? COLORS.success : COLORS.navy,
-                borderRadius: RADIUS.full,
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                marginTop: 8,
+                marginBottom: 4,
               }}
-            />
-          </View>
-        </View>
-      )}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons
+                  name="speedometer-outline"
+                  size={11}
+                  color={COLORS.gray500}
+                />
+                <Text
+                  style={{
+                    fontFamily: FONTS.semibold,
+                    fontSize: 10,
+                    color: COLORS.gray500,
+                    marginLeft: 3,
+                  }}
+                >
+                  Km parcourus
+                </Text>
+              </View>
+              <Text
+                style={{
+                  fontFamily: FONTS.black,
+                  fontSize: 10,
+                  color: COLORS.navy,
+                }}
+              >
+                {campaign.kmDone ?? 0} / {campaign.kmTotal ?? 0} km ·{' '}
+                {Math.round(progress * 100)}%
+              </Text>
+            </View>
+            <View
+              style={{
+                height: 5,
+                backgroundColor: COLORS.gray100,
+                borderRadius: RADIUS.full,
+                overflow: 'hidden',
+              }}
+            >
+              <View
+                style={{
+                  width: `${progress * 100}%`,
+                  height: '100%',
+                  backgroundColor: COLORS.success,
+                }}
+              />
+            </View>
+          </>
+        )}
+      </View>
 
       {/* Actions */}
-      <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
+      <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
         <View style={{ flex: 1 }}>
           <Button
             variant="outline"
             size="sm"
             fullWidth
-            icon="eye-outline"
+            icon="navigate-outline"
             iconPosition="left"
+            onPress={onTrack}
           >
-            Détails
+            Suivi
           </Button>
         </View>
         {campaign.status !== 'completed' && (
@@ -325,51 +435,5 @@ function AdminCampaignCard({
         )}
       </View>
     </Card>
-  );
-}
-
-function AdminMetric({
-  icon,
-  label,
-  value,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  value: string;
-}) {
-  return (
-    <View
-      style={{
-        flex: 1,
-        backgroundColor: COLORS.navySoft,
-        borderRadius: RADIUS.md,
-        padding: 10,
-      }}
-    >
-      <View
-        style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 3 }}
-      >
-        <Ionicons name={icon} size={11} color={COLORS.navy} />
-        <Text
-          style={{
-            fontFamily: FONTS.medium,
-            fontSize: 10,
-            color: COLORS.gray500,
-            marginLeft: 3,
-          }}
-        >
-          {label}
-        </Text>
-      </View>
-      <Text
-        style={{
-          fontFamily: FONTS.bold,
-          fontSize: 12,
-          color: COLORS.navy,
-        }}
-      >
-        {value}
-      </Text>
-    </View>
   );
 }

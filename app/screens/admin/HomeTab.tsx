@@ -3,7 +3,6 @@ import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ScreenHeader } from '../../../components/ScreenHeader';
 import { Card } from '../../../components/Card';
-import { StatCard } from '../../../components/StatCard';
 import { IconCircle } from '../../../components/IconCircle';
 import { Badge } from '../../../components/Badge';
 import { adminStats, drivers, companies, Campaign } from '../../../mocks/data';
@@ -68,7 +67,7 @@ export function AdminHomeTab({
       />
 
       {/* Revenue hero */}
-      <View style={{ paddingHorizontal: 24, marginBottom: 20 }}>
+      <View style={{ paddingHorizontal: 20, marginBottom: 16 }}>
         <Card variant="navy" padding="xxl">
           <View
             style={{
@@ -92,10 +91,10 @@ export function AdminHomeTab({
               <Text
                 style={{
                   fontFamily: FONTS.black,
-                  fontSize: 38,
+                  fontSize: 32,
                   color: COLORS.white,
-                  marginTop: 8,
-                  letterSpacing: -1,
+                  marginTop: 6,
+                  letterSpacing: -0.8,
                 }}
               >
                 {(adminStats.monthlyRevenue / 1000).toFixed(1)}k €
@@ -127,9 +126,9 @@ export function AdminHomeTab({
             </View>
             <View
               style={{
-                width: 64,
-                height: 64,
-                borderRadius: 32,
+                width: 52,
+                height: 52,
+                borderRadius: 26,
                 backgroundColor: 'rgba(255,255,255,0.12)',
                 borderWidth: 1,
                 borderColor: 'rgba(255,255,255,0.2)',
@@ -137,58 +136,20 @@ export function AdminHomeTab({
                 justifyContent: 'center',
               }}
             >
-              <Ionicons name="analytics" size={30} color={COLORS.white} />
+              <Ionicons name="analytics" size={24} color={COLORS.white} />
             </View>
           </View>
         </Card>
       </View>
 
-      {/* KPI row 1 */}
-      <View style={{ paddingHorizontal: 24, marginBottom: 12 }}>
-        <View style={{ flexDirection: 'row', gap: 12 }}>
-          <StatCard
-            icon="people"
-            label="Chauffeurs actifs"
-            value={adminStats.totalDrivers}
-            trend={`+${adminStats.newDriversThisWeek}`}
-            style={{ flex: 1 }}
-          />
-          <StatCard
-            icon="business"
-            label="Entreprises"
-            value={adminStats.totalCompanies}
-            trend={`+${adminStats.newCompaniesThisWeek}`}
-            style={{ flex: 1 }}
-          />
-        </View>
-      </View>
-
-      {/* KPI row 2 */}
-      <View style={{ paddingHorizontal: 24, marginBottom: 24 }}>
-        <View style={{ flexDirection: 'row', gap: 12 }}>
-          <StatCard
-            icon="megaphone"
-            label="Campagnes actives"
-            value={activeCount}
-            style={{ flex: 1 }}
-          />
-          <StatCard
-            icon="alert-circle"
-            label="En attente"
-            value={adminStats.pendingValidations}
-            style={{ flex: 1 }}
-          />
-        </View>
-      </View>
-
       {/* Quick actions */}
-      <View style={{ paddingHorizontal: 24, marginBottom: 24 }}>
+      <View style={{ paddingHorizontal: 20, marginBottom: 18 }}>
         <Text
           style={{
             fontFamily: FONTS.bold,
-            fontSize: 18,
+            fontSize: 15,
             color: COLORS.navy,
-            marginBottom: 14,
+            marginBottom: 12,
           }}
         >
           Actions rapides
@@ -236,7 +197,7 @@ export function AdminHomeTab({
           <Text
             style={{
               fontFamily: FONTS.bold,
-              fontSize: 18,
+              fontSize: 15,
               color: COLORS.navy,
             }}
           >
