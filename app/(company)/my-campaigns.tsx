@@ -4,21 +4,22 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
+  FlatList,
   Modal,
   StyleSheet,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '../../constants/Colors';
 import { Typography, FontFamily } from '../../constants/Typography';
 import { Spacing, Radius, Shadows } from '../../constants/Spacing';
 import { Campaign } from '../../constants/Types';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
-import Screen from '../../components/ui/Screen';
-import ScreenHeader from '../../components/ScreenHeader';
-import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 import BrandLogo from '../../components/BrandLogo';
+import { TAB_BAR_HEIGHT, TAB_BAR_BOTTOM } from '../../constants/TabBarStyle';
 
 type FilterKey = 'all' | 'available' | 'active' | 'completed';
 
@@ -37,6 +38,7 @@ const statusBadge: Record<string, { variant: 'success' | 'warning' | 'info' | 'n
 };
 
 export default function CompanyMyCampaignsScreen() {
+  const insets = useSafeAreaInsets();
   const { currentCompany } = useAuth();
   const { campaigns, drivers } = useData();
   const [filter, setFilter] = useState<FilterKey>('all');
@@ -53,15 +55,68 @@ export default function CompanyMyCampaignsScreen() {
   const getAssignedDrivers = (campaign: Campaign) =>
     drivers.filter((d) => campaign.assignedDriverIds.includes(d.id));
 
+  const renderCampaignCard = ({ item: campaign }: { item: Campaign }) => {
+    const badge = statusBadge[campaign.status];
+    return (
+      <TouchableOpacity
+        style={styles.campaignCard}
+        onPress={() => setSelectedCampaign(campaign)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.cardHeader}>
+          <BrandLogo domain={campaign.domain} name={campaign.brand} size={36} />
+          <View style={styles.cardInfo}>
+            <Text style={styles.cardTitle} numberOfLines={1}>{campaign.title}</Text>
+            <Text style={styles.cardMeta}>
+              {campaign.city} · {campaign.startDate} → {campaign.endDate}
+            </Text>
+          </View>
+          <Badge variant={badge.variant} label={badge.label} />
+        </View>
+        <View style={styles.cardFooter}>
+          <Text style={styles.cardStat}>
+            {campaign.driversAssigned}/{campaign.driversNeeded} chauffeurs
+          </Text>
+          <Text style={styles.cardReward}>{campaign.reward} €</Text>
+        </View>
+        {campaign.status === 'active' && (
+          <View style={styles.progressRow}>
+            <View style={styles.progressTrack}>
+              <LinearGradient
+                colors={[Colors.navy, Colors.navyLight]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={[styles.progressFill, { width: `${Math.round(campaign.progress * 100)}%` }]}
+              />
+            </View>
+            <Text style={styles.progressLabel}>{Math.round(campaign.progress * 100)}%</Text>
+          </View>
+        )}
+      </TouchableOpacity>
+    );
+  };
+
   return (
-    <Screen>
-      <ScreenHeader title="Mes campagnes" />
+    <View style={[styles.screen, { paddingTop: insets.top }]}>
+      {/* Header */}
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.headerTitle}>Mes campagnes</Text>
+          <Text style={styles.headerSubtitle}>
+            {filtered.length} campagne{filtered.length > 1 ? 's' : ''}
+          </Text>
+        </View>
+        <TouchableOpacity style={styles.searchBtn}>
+          <Feather name="search" size={20} color={Colors.navy} />
+        </TouchableOpacity>
+      </View>
 
       {/* Filter chips */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.filterRow}
+        style={styles.filterScroll}
       >
         {FILTERS.map((f) => {
           const active = filter === f.key;
@@ -81,57 +136,22 @@ export default function CompanyMyCampaignsScreen() {
       </ScrollView>
 
       {/* Campaign list */}
-      <ScrollView
-        style={styles.flex}
+      <FlatList
+        data={filtered}
+        keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
-      >
-        {filtered.length === 0 ? (
+        renderItem={renderCampaignCard}
+        ListEmptyComponent={
           <View style={styles.empty}>
-            <Feather name="folder" size={48} color={Colors.gray300} />
-            <Text style={styles.emptyText}>Aucune campagne trouvée</Text>
+            <View style={styles.emptyIcon}>
+              <Feather name="folder" size={32} color={Colors.gray300} />
+            </View>
+            <Text style={styles.emptyTitle}>Aucune campagne trouvée</Text>
+            <Text style={styles.emptyText}>Essayez un autre filtre</Text>
           </View>
-        ) : (
-          filtered.map((campaign) => {
-            const badge = statusBadge[campaign.status];
-            return (
-              <Card
-                key={campaign.id}
-                variant="surface"
-                style={styles.campaignCard}
-                onPress={() => setSelectedCampaign(campaign)}
-              >
-                <View style={styles.cardHeader}>
-                  <BrandLogo domain={campaign.domain} name={campaign.brand} size={36} />
-                  <View style={styles.cardInfo}>
-                    <Text style={styles.cardTitle} numberOfLines={1}>{campaign.title}</Text>
-                    <Text style={styles.cardMeta}>
-                      {campaign.city} · {campaign.startDate} → {campaign.endDate}
-                    </Text>
-                  </View>
-                  <Badge variant={badge.variant} label={badge.label} />
-                </View>
-                <View style={styles.cardFooter}>
-                  <Text style={styles.cardStat}>
-                    {campaign.driversAssigned}/{campaign.driversNeeded} chauffeurs
-                  </Text>
-                  <Text style={styles.cardReward}>{campaign.reward} €</Text>
-                </View>
-                {campaign.status === 'active' && (
-                  <View style={styles.progressRow}>
-                    <View style={styles.progressTrack}>
-                      <View
-                        style={[styles.progressFill, { width: `${Math.round(campaign.progress * 100)}%` }]}
-                      />
-                    </View>
-                    <Text style={styles.progressLabel}>{Math.round(campaign.progress * 100)}%</Text>
-                  </View>
-                )}
-              </Card>
-            );
-          })
-        )}
-      </ScrollView>
+        }
+      />
 
       {/* Detail bottom sheet modal */}
       <Modal
@@ -157,7 +177,7 @@ export default function CompanyMyCampaignsScreen() {
               </View>
 
               {/* Info */}
-              <Card variant="outlined" style={styles.modalInfoCard}>
+              <View style={styles.modalInfoCard}>
                 <Text style={styles.modalDescription}>{selectedCampaign.description}</Text>
                 <View style={styles.modalDetailRow}>
                   <Feather name="map-pin" size={16} color={Colors.gray500} />
@@ -175,15 +195,18 @@ export default function CompanyMyCampaignsScreen() {
                   <Feather name="dollar-sign" size={16} color={Colors.gray500} />
                   <Text style={styles.modalDetail}>{selectedCampaign.reward} € / véhicule</Text>
                 </View>
-              </Card>
+              </View>
 
               {/* Progress */}
               {selectedCampaign.status === 'active' && (
-                <Card variant="surface" style={styles.modalProgressCard}>
+                <View style={styles.modalProgressCard}>
                   <Text style={styles.modalSectionTitle}>Progression</Text>
                   <View style={styles.progressRow}>
                     <View style={styles.progressTrackLarge}>
-                      <View
+                      <LinearGradient
+                        colors={[Colors.navy, Colors.navyLight]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
                         style={[styles.progressFillLarge, { width: `${Math.round(selectedCampaign.progress * 100)}%` }]}
                       />
                     </View>
@@ -192,7 +215,7 @@ export default function CompanyMyCampaignsScreen() {
                   <Text style={styles.modalKm}>
                     {selectedCampaign.kmDone.toLocaleString()} / {selectedCampaign.kmTotal.toLocaleString()} km
                   </Text>
-                </Card>
+                </View>
               )}
 
               {/* Assigned drivers */}
@@ -232,25 +255,63 @@ export default function CompanyMyCampaignsScreen() {
           </View>
         )}
       </Modal>
-    </Screen>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
+  screen: {
+    flex: 1,
+    backgroundColor: Colors.navyTint,
+  },
+
+  // Header
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 16,
+  },
+  headerTitle: {
+    fontFamily: FontFamily.black,
+    fontSize: 22,
+    color: Colors.black,
+  },
+  headerSubtitle: {
+    fontFamily: FontFamily.regular,
+    fontSize: 12,
+    color: Colors.gray500,
+    marginTop: 2,
+  },
+  searchBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    backgroundColor: Colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Shadows.sm,
+  },
 
   // Filters
+  filterScroll: {
+    flexGrow: 0,
+  },
   filterRow: {
-    paddingHorizontal: Spacing.xl,
-    paddingBottom: Spacing.lg,
-    gap: Spacing.sm,
+    paddingHorizontal: 20,
+    paddingBottom: 14,
+    gap: 8,
   },
   filterChip: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radius.full,
+    paddingHorizontal: 16,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 100,
     backgroundColor: Colors.white,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: Colors.gray200,
   },
   filterChipActive: {
@@ -258,8 +319,8 @@ const styles = StyleSheet.create({
     borderColor: Colors.navy,
   },
   filterText: {
-    ...Typography.bodySmall,
     fontFamily: FontFamily.medium,
+    fontSize: 12,
     color: Colors.gray600,
   },
   filterTextActive: {
@@ -268,40 +329,64 @@ const styles = StyleSheet.create({
 
   // List
   listContent: {
-    paddingHorizontal: Spacing.xl,
-    paddingBottom: Spacing.huge,
+    paddingHorizontal: 20,
+    paddingBottom: TAB_BAR_HEIGHT + TAB_BAR_BOTTOM + 16,
   },
+
+  // Empty
   empty: {
     alignItems: 'center',
     paddingTop: 80,
-    gap: Spacing.md,
+    gap: 8,
+  },
+  emptyIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    backgroundColor: Colors.gray100,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  emptyTitle: {
+    fontFamily: FontFamily.bold,
+    fontSize: 15,
+    color: Colors.gray700,
   },
   emptyText: {
-    ...Typography.body,
+    fontFamily: FontFamily.regular,
+    fontSize: 12,
     color: Colors.gray400,
   },
 
   // Campaign card
   campaignCard: {
-    marginBottom: Spacing.md,
+    backgroundColor: Colors.white,
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: Colors.gray100,
+    ...Shadows.sm,
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: 12,
   },
   cardInfo: {
     flex: 1,
-    marginLeft: Spacing.md,
-    marginRight: Spacing.sm,
+    marginLeft: 10,
+    marginRight: 8,
   },
   cardTitle: {
-    ...Typography.h3,
+    fontFamily: FontFamily.bold,
+    fontSize: 14,
     color: Colors.black,
-    fontSize: 15,
   },
   cardMeta: {
-    ...Typography.caption,
+    fontFamily: FontFamily.regular,
+    fontSize: 11,
     color: Colors.gray500,
     marginTop: 2,
   },
@@ -311,35 +396,38 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cardStat: {
-    ...Typography.bodySmall,
+    fontFamily: FontFamily.regular,
+    fontSize: 12,
     color: Colors.gray600,
   },
   cardReward: {
-    ...Typography.bodyMedium,
     fontFamily: FontFamily.bold,
+    fontSize: 15,
     color: Colors.navy,
   },
   progressRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
-    marginTop: Spacing.md,
+    gap: 8,
+    marginTop: 12,
   },
   progressTrack: {
     flex: 1,
-    height: 5,
-    backgroundColor: Colors.gray200,
-    borderRadius: 3,
+    height: 7,
+    backgroundColor: Colors.gray100,
+    borderRadius: 4,
     overflow: 'hidden',
   },
   progressFill: {
-    height: 5,
-    backgroundColor: Colors.success,
-    borderRadius: 3,
+    height: 7,
+    borderRadius: 4,
   },
   progressLabel: {
-    ...Typography.caption,
-    color: Colors.gray500,
+    fontFamily: FontFamily.bold,
+    fontSize: 12,
+    color: Colors.navy,
+    minWidth: 34,
+    textAlign: 'right',
   },
 
   // Modal
@@ -353,85 +441,104 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     backgroundColor: Colors.gray300,
     alignSelf: 'center',
-    marginTop: Spacing.md,
-    marginBottom: Spacing.lg,
+    marginTop: 8,
+    marginBottom: 12,
   },
   modalContent: {
-    paddingHorizontal: Spacing.xl,
-    paddingBottom: Spacing.huge,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
   },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Spacing.xl,
+    marginBottom: 20,
   },
   modalHeaderText: {
     flex: 1,
-    marginLeft: Spacing.lg,
-    gap: Spacing.sm,
+    marginLeft: 12,
+    gap: 6,
   },
   modalTitle: {
-    ...Typography.h2,
+    fontFamily: FontFamily.bold,
+    fontSize: 17,
     color: Colors.black,
   },
   modalInfoCard: {
-    marginBottom: Spacing.lg,
+    backgroundColor: Colors.white,
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: Colors.gray100,
+    ...Shadows.sm,
   },
   modalDescription: {
-    ...Typography.body,
+    fontFamily: FontFamily.regular,
+    fontSize: 13,
+    lineHeight: 20,
     color: Colors.gray700,
-    lineHeight: 24,
-    marginBottom: Spacing.lg,
+    marginBottom: 12,
   },
   modalDetailRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: Spacing.sm,
-    marginBottom: Spacing.sm,
+    gap: 8,
+    marginBottom: 6,
   },
   modalDetail: {
-    ...Typography.bodySmall,
+    fontFamily: FontFamily.regular,
+    fontSize: 12,
     color: Colors.gray600,
     flex: 1,
   },
   modalProgressCard: {
-    marginBottom: Spacing.lg,
+    backgroundColor: Colors.white,
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: Colors.gray100,
+    ...Shadows.sm,
   },
   progressTrackLarge: {
     flex: 1,
     height: 8,
-    backgroundColor: Colors.gray200,
+    backgroundColor: Colors.gray100,
     borderRadius: 4,
     overflow: 'hidden',
   },
   progressFillLarge: {
     height: 8,
-    backgroundColor: Colors.success,
     borderRadius: 4,
   },
   progressLabelLarge: {
-    ...Typography.bodyMedium,
-    color: Colors.gray600,
+    fontFamily: FontFamily.bold,
+    fontSize: 13,
+    color: Colors.navy,
+    minWidth: 34,
+    textAlign: 'right',
   },
   modalKm: {
-    ...Typography.bodySmall,
+    fontFamily: FontFamily.regular,
+    fontSize: 12,
     color: Colors.gray500,
-    marginTop: Spacing.sm,
+    marginTop: 6,
   },
 
   // Drivers
   modalSection: {
-    marginBottom: Spacing.lg,
+    marginBottom: 12,
   },
   modalSectionTitle: {
-    ...Typography.h3,
+    fontFamily: FontFamily.bold,
+    fontSize: 15,
     color: Colors.black,
-    marginBottom: Spacing.md,
+    marginBottom: 12,
   },
   driverRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: Spacing.md,
+    paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: Colors.gray100,
   },
@@ -450,28 +557,31 @@ const styles = StyleSheet.create({
   },
   driverInfo: {
     flex: 1,
-    marginLeft: Spacing.md,
+    marginLeft: 10,
   },
   driverName: {
-    ...Typography.bodyMedium,
+    fontFamily: FontFamily.medium,
+    fontSize: 13,
     color: Colors.black,
   },
   driverMeta: {
-    ...Typography.caption,
+    fontFamily: FontFamily.regular,
+    fontSize: 11,
     color: Colors.gray500,
   },
 
   // Close
   closeBtn: {
     alignItems: 'center',
-    paddingVertical: Spacing.lg,
-    marginTop: Spacing.lg,
-    borderRadius: Radius.md,
+    paddingVertical: 14,
+    marginTop: 12,
+    borderRadius: 20,
     borderWidth: 1.5,
     borderColor: Colors.navy,
   },
   closeBtnText: {
-    ...Typography.button,
+    fontFamily: FontFamily.bold,
+    fontSize: 14,
     color: Colors.navy,
   },
 });

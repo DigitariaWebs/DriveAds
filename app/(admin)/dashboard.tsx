@@ -1,19 +1,19 @@
 import { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/Colors';
 import { Typography, FontFamily } from '../../constants/Typography';
 import { Spacing, Radius, Shadows } from '../../constants/Spacing';
+import { TAB_BAR_HEIGHT, TAB_BAR_BOTTOM } from '../../constants/TabBarStyle';
 import { useData } from '../../context/DataContext';
-import Screen from '../../components/ui/Screen';
-import ScreenHeader from '../../components/ScreenHeader';
-import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
-import Button from '../../components/ui/Button';
 import CreateCampaignModal from '../../components/modals/CreateCampaignModal';
 
 export default function AdminDashboardScreen() {
+  const insets = useSafeAreaInsets();
   const {
     adminStats,
     drivers,
@@ -42,176 +42,330 @@ export default function AdminDashboardScreen() {
     })),
   ].slice(0, 3);
 
+  const totalPending = pendingDrivers.length + pendingCompanies.length;
+
   return (
-    <Screen scroll>
-      <ScreenHeader title="Administration" subtitle="Tableau de bord" />
-
-      <View style={styles.content}>
-        {/* ─── 1. Revenue Hero Card ────────────────────── */}
-        <Card variant="navy" style={styles.heroCard}>
-          <Text style={styles.heroLabel}>Revenus mensuels</Text>
-          <View style={styles.heroRow}>
-            <Text style={styles.heroAmount}>
-              {adminStats.monthlyRevenue.toLocaleString()} €
-            </Text>
-            <Badge
-              variant="success"
-              label={`+${adminStats.revenueGrowth}% vs mois dernier`}
-              icon="trending-up"
-            />
+    <View style={styles.root}>
+      <ScrollView
+        style={styles.root}
+        showsVerticalScrollIndicator={false}
+        bounces={true}
+      >
+        {/* ─── Gradient Hero Header ──────────────────────── */}
+        <LinearGradient
+          colors={[Colors.navyDark, Colors.navy, Colors.navyLight]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.heroGradient, { paddingTop: insets.top + 12 }]}
+        >
+          {/* Top bar */}
+          <View style={styles.topBar}>
+            <View>
+              <Text style={styles.greeting}>Administration</Text>
+              <Text style={styles.subtitle}>Tableau de bord</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.gearBtn}
+              onPress={() => {}}
+            >
+              <Feather name="settings" size={22} color={Colors.white} />
+            </TouchableOpacity>
           </View>
-        </Card>
 
-        {/* ─── 2. Quick Actions Grid (2x2) ────────────── */}
-        <Text style={styles.sectionTitle}>Actions rapides</Text>
-        <View style={styles.gridRow}>
-          <TouchableOpacity
-            style={styles.gridItem}
-            onPress={() => router.push('/(admin)/directory')}
-            activeOpacity={0.7}
-          >
-            <View style={styles.gridIconRow}>
-              <Feather name="truck" size={24} color={Colors.navy} />
-              {pendingDrivers.length > 0 && (
-                <View style={styles.gridBadge}>
-                  <Text style={styles.gridBadgeText}>{pendingDrivers.length}</Text>
-                </View>
-              )}
-            </View>
-            <Text style={styles.gridLabel}>Chauffeurs</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.gridItem}
-            onPress={() => router.push('/(admin)/directory')}
-            activeOpacity={0.7}
-          >
-            <View style={styles.gridIconRow}>
-              <Feather name="briefcase" size={24} color={Colors.navy} />
-              {pendingCompanies.length > 0 && (
-                <View style={styles.gridBadge}>
-                  <Text style={styles.gridBadgeText}>{pendingCompanies.length}</Text>
-                </View>
-              )}
-            </View>
-            <Text style={styles.gridLabel}>Entreprises</Text>
-          </TouchableOpacity>
-        </View>
-        <View style={styles.gridRow}>
-          <TouchableOpacity
-            style={styles.gridItem}
-            onPress={() => setShowCreateModal(true)}
-            activeOpacity={0.7}
-          >
-            <Feather name="plus-circle" size={24} color={Colors.navy} />
-            <Text style={styles.gridLabel}>Créer campagne</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.gridItem}
-            onPress={() => router.push('/(admin)/campaigns')}
-            activeOpacity={0.7}
-          >
-            <View style={styles.gridIconRow}>
-              <Feather name="bar-chart-2" size={24} color={Colors.navy} />
-              <View style={[styles.gridBadge, { backgroundColor: Colors.info }]}>
-                <Text style={styles.gridBadgeText}>{activeCampaignsCount}</Text>
+          {/* Revenue hero */}
+          <View style={styles.earningsSection}>
+            <Text style={styles.earningsLabel}>Revenus mensuels</Text>
+            <View style={styles.earningsRow}>
+              <Text style={styles.earningsAmount}>
+                {adminStats.monthlyRevenue.toLocaleString()} €
+              </Text>
+              <View style={styles.growthPill}>
+                <Feather name="trending-up" size={12} color={Colors.success} />
+                <Text style={styles.growthText}>+{adminStats.revenueGrowth}%</Text>
               </View>
             </View>
-            <Text style={styles.gridLabel}>Suivi</Text>
-          </TouchableOpacity>
-        </View>
+          </View>
 
-        {/* ─── 3. Répartition par ville ────────────────── */}
-        <Text style={styles.sectionTitle}>Répartition par ville</Text>
-        <View style={styles.cityRow}>
-          {adminStats.citiesBreakdown.map((item) => (
-            <View key={item.city} style={styles.cityCard}>
-              <Text style={styles.cityName}>{item.city}</Text>
-              <Text style={styles.cityCount}>{item.vehicles} véhicules</Text>
+          {/* Mini stats in frosted row */}
+          <View style={styles.miniStatsRow}>
+            <View style={styles.miniStat}>
+              <Text style={styles.miniStatValue}>{drivers.length}</Text>
+              <Text style={styles.miniStatLabel}>Chauffeurs</Text>
             </View>
-          ))}
-        </View>
-
-        {/* ─── 4. Inscriptions en attente ──────────────── */}
-        {pendingItems.length > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionTitle}>Inscriptions en attente</Text>
-              <TouchableOpacity onPress={() => router.push('/(admin)/validations')}>
-                <Text style={styles.viewAllLink}>Voir tout →</Text>
-              </TouchableOpacity>
+            <View style={styles.miniStatDivider} />
+            <View style={styles.miniStat}>
+              <Text style={styles.miniStatValue}>{companies.length}</Text>
+              <Text style={styles.miniStatLabel}>Entreprises</Text>
             </View>
+            <View style={styles.miniStatDivider} />
+            <View style={styles.miniStat}>
+              <Text style={styles.miniStatValue}>{activeCampaignsCount}</Text>
+              <Text style={styles.miniStatLabel}>Campagnes actives</Text>
+            </View>
+          </View>
+        </LinearGradient>
 
-            {pendingItems.map((item) => (
-              <View key={item.id} style={styles.pendingItem}>
-                <View style={styles.pendingInfo}>
-                  <Text style={styles.pendingName}>{item.name}</Text>
-                  <Badge
-                    variant={item.type === 'driver' ? 'navy' : 'info'}
-                    label={item.type === 'driver' ? 'Chauffeur' : 'Entreprise'}
-                  />
+        {/* ─── White Content Sheet ───────────────────────── */}
+        <View style={styles.contentSheet}>
+          {/* Quick actions 2x2 grid */}
+          <Text style={styles.sectionTitle}>Actions rapides</Text>
+          <View style={styles.gridRow}>
+            <TouchableOpacity
+              style={styles.gridItem}
+              onPress={() => router.push('/(admin)/directory')}
+              activeOpacity={0.7}
+            >
+              <View style={styles.gridIconRow}>
+                <View style={[styles.gridIconBg, { backgroundColor: Colors.navySoft }]}>
+                  <Feather name="truck" size={20} color={Colors.navy} />
                 </View>
-                <View style={styles.pendingActions}>
-                  <TouchableOpacity
-                    style={styles.approveBtn}
-                    onPress={() =>
-                      item.type === 'driver'
-                        ? updateDriverStatus(item.id, 'validated')
-                        : updateCompanyStatus(item.id, 'validated')
-                    }
-                  >
-                    <Feather name="check" size={18} color={Colors.success} />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.rejectBtn}
-                    onPress={() =>
-                      item.type === 'driver'
-                        ? updateDriverStatus(item.id, 'rejected')
-                        : updateCompanyStatus(item.id, 'rejected')
-                    }
-                  >
-                    <Feather name="x" size={18} color={Colors.danger} />
-                  </TouchableOpacity>
+                {pendingDrivers.length > 0 && (
+                  <View style={styles.gridBadge}>
+                    <Text style={styles.gridBadgeText}>{pendingDrivers.length}</Text>
+                  </View>
+                )}
+              </View>
+              <Text style={styles.gridLabel}>Chauffeurs</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.gridItem}
+              onPress={() => router.push('/(admin)/directory')}
+              activeOpacity={0.7}
+            >
+              <View style={styles.gridIconRow}>
+                <View style={[styles.gridIconBg, { backgroundColor: Colors.navySoft }]}>
+                  <Feather name="briefcase" size={20} color={Colors.navy} />
                 </View>
+                {pendingCompanies.length > 0 && (
+                  <View style={styles.gridBadge}>
+                    <Text style={styles.gridBadgeText}>{pendingCompanies.length}</Text>
+                  </View>
+                )}
+              </View>
+              <Text style={styles.gridLabel}>Entreprises</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.gridRow}>
+            <TouchableOpacity
+              style={styles.gridItem}
+              onPress={() => setShowCreateModal(true)}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.gridIconBg, { backgroundColor: Colors.successSoft }]}>
+                <Feather name="plus-circle" size={20} color={Colors.success} />
+              </View>
+              <Text style={styles.gridLabel}>Créer campagne</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.gridItem}
+              onPress={() => router.push('/(admin)/campaigns')}
+              activeOpacity={0.7}
+            >
+              <View style={styles.gridIconRow}>
+                <View style={[styles.gridIconBg, { backgroundColor: Colors.infoSoft }]}>
+                  <Feather name="bar-chart-2" size={20} color={Colors.info} />
+                </View>
+                <View style={[styles.gridBadge, { backgroundColor: Colors.info }]}>
+                  <Text style={styles.gridBadgeText}>{activeCampaignsCount}</Text>
+                </View>
+              </View>
+              <Text style={styles.gridLabel}>Suivi</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* ─── City breakdown ─────────────────────────────── */}
+          <Text style={styles.sectionTitle}>Répartition par ville</Text>
+          <View style={styles.cityRow}>
+            {adminStats.citiesBreakdown.map((item) => (
+              <View key={item.city} style={styles.cityCard}>
+                <View style={styles.cityIconWrap}>
+                  <Feather name="map-pin" size={14} color={Colors.navy} />
+                </View>
+                <Text style={styles.cityName}>{item.city}</Text>
+                <Text style={styles.cityCount}>{item.vehicles} véhicules</Text>
               </View>
             ))}
           </View>
-        )}
-      </View>
 
-      <View style={styles.bottomSpacer} />
+          {/* ─── Pending registrations ──────────────────────── */}
+          {pendingItems.length > 0 && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeaderRow}>
+                <Text style={styles.sectionTitle}>Inscriptions en attente</Text>
+                <TouchableOpacity onPress={() => router.push('/(admin)/validations')}>
+                  <Text style={styles.viewAllLink}>Voir tout</Text>
+                </TouchableOpacity>
+              </View>
+
+              {pendingItems.map((item) => (
+                <View key={item.id} style={styles.pendingItem}>
+                  <View style={styles.pendingAvatar}>
+                    <Feather
+                      name={item.type === 'driver' ? 'user' : 'briefcase'}
+                      size={16}
+                      color={Colors.navy}
+                    />
+                  </View>
+                  <View style={styles.pendingInfo}>
+                    <Text style={styles.pendingName}>{item.name}</Text>
+                    <Badge
+                      variant={item.type === 'driver' ? 'navy' : 'info'}
+                      label={item.type === 'driver' ? 'Chauffeur' : 'Entreprise'}
+                    />
+                  </View>
+                  <View style={styles.pendingActions}>
+                    <TouchableOpacity
+                      style={styles.approveBtn}
+                      onPress={() =>
+                        item.type === 'driver'
+                          ? updateDriverStatus(item.id, 'validated')
+                          : updateCompanyStatus(item.id, 'validated')
+                      }
+                    >
+                      <Feather name="check" size={18} color={Colors.success} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.rejectBtn}
+                      onPress={() =>
+                        item.type === 'driver'
+                          ? updateDriverStatus(item.id, 'rejected')
+                          : updateCompanyStatus(item.id, 'rejected')
+                      }
+                    >
+                      <Feather name="x" size={18} color={Colors.danger} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* Bottom spacer for floating tab bar */}
+          <View style={{ height: TAB_BAR_HEIGHT + TAB_BAR_BOTTOM + 20 }} />
+        </View>
+      </ScrollView>
 
       <CreateCampaignModal
         visible={showCreateModal}
         onClose={() => setShowCreateModal(false)}
       />
-    </Screen>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  content: {
-    paddingHorizontal: Spacing.xl,
+  root: {
+    flex: 1,
+    backgroundColor: Colors.navyDark,
   },
 
-  // Hero
-  heroCard: {
-    marginBottom: Spacing.xxl,
+  // ─── Hero gradient ────────────────────────────────────────
+  heroGradient: {
+    paddingHorizontal: 20,
+    paddingBottom: 60,
   },
-  heroLabel: {
-    ...Typography.bodySmall,
-    color: 'rgba(255,255,255,0.7)',
-    marginBottom: Spacing.xs,
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
   },
-  heroRow: {
+  greeting: {
+    fontFamily: FontFamily.bold,
+    fontSize: 17,
+    color: Colors.white,
+  },
+  subtitle: {
+    fontFamily: FontFamily.regular,
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.55)',
+    marginTop: 3,
+  },
+  gearBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  earningsSection: {
+    marginBottom: 20,
+  },
+  earningsLabel: {
+    fontFamily: FontFamily.regular,
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.55)',
+    marginBottom: 4,
+  },
+  earningsRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    justifyContent: 'space-between',
+    gap: 12,
   },
-  heroAmount: {
-    ...Typography.displayLarge,
+  earningsAmount: {
+    fontFamily: FontFamily.black,
+    fontSize: 38,
     color: Colors.white,
+    lineHeight: 42,
+  },
+  growthPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(16,185,129,0.15)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 100,
+    marginBottom: 6,
+  },
+  growthText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 11,
+    color: Colors.success,
+  },
+  miniStatsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 4,
+  },
+  miniStat: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  miniStatDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+  },
+  miniStatValue: {
+    fontFamily: FontFamily.bold,
+    fontSize: 14,
+    color: Colors.white,
+    lineHeight: 18,
+  },
+  miniStatLabel: {
+    fontFamily: FontFamily.regular,
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.45)',
+    marginTop: 3,
+  },
+
+  // ─── White content sheet ──────────────────────────────────
+  contentSheet: {
+    backgroundColor: Colors.white,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    marginTop: -28,
+    paddingTop: 24,
+    paddingHorizontal: 20,
+    minHeight: 400,
   },
 
   // Sections
@@ -219,41 +373,51 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   sectionTitle: {
-    ...Typography.h3,
+    fontFamily: FontFamily.bold,
+    fontSize: 15,
     color: Colors.black,
-    marginBottom: Spacing.md,
+    marginBottom: 12,
   },
   sectionHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: 12,
   },
   viewAllLink: {
-    ...Typography.bodySmall,
-    fontFamily: FontFamily.semiBold,
+    fontFamily: FontFamily.medium,
+    fontSize: 12,
     color: Colors.navy,
   },
 
   // Grid
   gridRow: {
     flexDirection: 'row',
-    gap: Spacing.md,
-    marginBottom: Spacing.md,
+    gap: 10,
+    marginBottom: 10,
   },
   gridItem: {
     flex: 1,
     backgroundColor: Colors.white,
-    borderRadius: Radius.lg,
+    borderRadius: 20,
     padding: Spacing.lg,
     alignItems: 'center',
     gap: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.gray200,
     ...Shadows.sm,
   },
   gridIconRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
+  },
+  gridIconBg: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   gridBadge: {
     backgroundColor: Colors.danger,
@@ -270,33 +434,44 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   gridLabel: {
-    ...Typography.bodySmall,
     fontFamily: FontFamily.medium,
+    fontSize: 12,
     color: Colors.gray700,
   },
 
   // Cities
   cityRow: {
     flexDirection: 'row',
-    gap: Spacing.sm,
-    marginBottom: Spacing.xxl,
+    gap: 10,
+    marginBottom: 24,
   },
   cityCard: {
     flex: 1,
-    backgroundColor: Colors.white,
-    borderRadius: Radius.md,
-    padding: Spacing.md,
+    backgroundColor: Colors.navyTint,
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 8,
     alignItems: 'center',
-    ...Shadows.sm,
+    gap: 4,
+  },
+  cityIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: Colors.navySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 2,
   },
   cityName: {
-    ...Typography.bodyMedium,
+    fontFamily: FontFamily.bold,
+    fontSize: 13,
     color: Colors.black,
   },
   cityCount: {
-    ...Typography.caption,
+    fontFamily: FontFamily.regular,
+    fontSize: 10,
     color: Colors.gray500,
-    marginTop: 2,
   },
 
   // Pending items
@@ -304,17 +479,29 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.white,
-    borderRadius: Radius.md,
-    padding: Spacing.lg,
+    borderRadius: 20,
+    padding: 16,
     marginBottom: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.gray200,
     ...Shadows.sm,
+  },
+  pendingAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: Colors.navySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   pendingInfo: {
     flex: 1,
-    gap: Spacing.sm,
+    marginLeft: Spacing.md,
+    gap: Spacing.xs,
   },
   pendingName: {
-    ...Typography.bodyMedium,
+    fontFamily: FontFamily.semiBold,
+    fontSize: 13,
     color: Colors.black,
   },
   pendingActions: {
@@ -336,9 +523,5 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.dangerSoft,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-
-  bottomSpacer: {
-    height: Spacing.xxl,
   },
 });

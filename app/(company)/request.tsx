@@ -10,20 +10,22 @@ import {
   StyleSheet,
 } from 'react-native';
 import { router } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/Colors';
 import { Typography, FontFamily } from '../../constants/Typography';
-import { Spacing, Radius } from '../../constants/Spacing';
+import { Spacing, Radius, Shadows } from '../../constants/Spacing';
 import { Campaign } from '../../constants/Types';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
-import Screen from '../../components/ui/Screen';
-import ScreenHeader from '../../components/ScreenHeader';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
+import { TAB_BAR_HEIGHT, TAB_BAR_BOTTOM } from '../../constants/TabBarStyle';
 
 const CITIES = ['Paris', 'Lyon', 'Caen', 'Marseille', 'Toutes les villes'];
 
 export default function CompanyRequestScreen() {
+  const insets = useSafeAreaInsets();
   const { currentCompany } = useAuth();
   const { addCampaign } = useData();
 
@@ -103,8 +105,18 @@ export default function CompanyRequestScreen() {
   };
 
   return (
-    <Screen>
-      <ScreenHeader title="Nouvelle campagne" subtitle="Créez votre demande" />
+    <View style={[styles.screen, { paddingTop: insets.top }]}>
+      {/* Header */}
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.headerTitle}>Nouvelle campagne</Text>
+          <Text style={styles.headerSubtitle}>Créez votre demande</Text>
+        </View>
+        <View style={styles.headerIcon}>
+          <Feather name="edit-3" size={20} color={Colors.navy} />
+        </View>
+      </View>
+
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -204,19 +216,55 @@ export default function CompanyRequestScreen() {
               Soumettre la campagne
             </Button>
           </View>
+
+          <View style={{ height: TAB_BAR_HEIGHT + TAB_BAR_BOTTOM + 16 }} />
         </ScrollView>
       </KeyboardAvoidingView>
-    </Screen>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: Colors.navyTint,
+  },
   flex: {
     flex: 1,
   },
+
+  // Header
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 16,
+  },
+  headerTitle: {
+    fontFamily: FontFamily.black,
+    fontSize: 22,
+    color: Colors.black,
+  },
+  headerSubtitle: {
+    fontFamily: FontFamily.regular,
+    fontSize: 12,
+    color: Colors.gray500,
+    marginTop: 2,
+  },
+  headerIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    backgroundColor: Colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Shadows.sm,
+  },
+
   scrollContent: {
-    paddingHorizontal: Spacing.xl,
-    paddingBottom: Spacing.huge,
+    paddingHorizontal: 20,
   },
   pickerLabel: {
     ...Typography.caption,
@@ -230,24 +278,27 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   chip: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radius.full,
-    borderWidth: 1.5,
-    borderColor: Colors.gray200,
+    paddingHorizontal: 16,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 100,
     backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.gray200,
   },
   chipActive: {
+    backgroundColor: Colors.navy,
     borderColor: Colors.navy,
-    backgroundColor: Colors.navySoft,
   },
   chipText: {
-    ...Typography.bodySmall,
+    fontFamily: FontFamily.medium,
+    fontSize: 12,
     color: Colors.gray600,
   },
   chipTextActive: {
     fontFamily: FontFamily.semiBold,
-    color: Colors.navy,
+    color: Colors.white,
   },
   dateRow: {
     flexDirection: 'row',

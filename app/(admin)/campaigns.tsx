@@ -1,20 +1,20 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import {
   View,
   Text,
-  ScrollView,
+  FlatList,
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/Colors';
 import { Typography, FontFamily } from '../../constants/Typography';
 import { Spacing, Radius, Shadows } from '../../constants/Spacing';
+import { TAB_BAR_HEIGHT, TAB_BAR_BOTTOM } from '../../constants/TabBarStyle';
 import { Campaign } from '../../constants/Types';
 import { useData } from '../../context/DataContext';
-import Screen from '../../components/ui/Screen';
-import ScreenHeader from '../../components/ScreenHeader';
-import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
 import BrandLogo from '../../components/BrandLogo';
@@ -39,6 +39,7 @@ const statusBadge: Record<string, { variant: 'success' | 'info' | 'neutral' | 'w
 };
 
 export default function AdminCampaignsScreen() {
+  const insets = useSafeAreaInsets();
   const { campaigns } = useData();
   const [filter, setFilter] = useState<FilterKey>('all');
   const [showCreate, setShowCreate] = useState(false);
@@ -50,26 +51,127 @@ export default function AdminCampaignsScreen() {
     return c.status === filter;
   });
 
-  return (
-    <Screen>
-      <ScreenHeader
-        title="Campagnes"
-        rightAction={
-          <TouchableOpacity
-            onPress={() => setShowCreate(true)}
-            style={styles.addBtn}
-          >
-            <Feather name="plus-circle" size={28} color={Colors.navy} />
-          </TouchableOpacity>
-        }
-      />
+  const renderCampaignItem = useCallback(
+    ({ item: campaign }: { item: Campaign }) => {
+      const badge = statusBadge[campaign.status];
+      const driverPct =
+        campaign.driversNeeded > 0
+          ? Math.round((campaign.driversAssigned / campaign.driversNeeded) * 100)
+          : 0;
 
-      {/* Filters */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.filterRow}
-      >
+      return (
+        <View style={styles.card}>
+          {/* Header */}
+          <View style={styles.cardHeader}>
+            <BrandLogo domain={campaign.domain} name={campaign.brand} size={40} />
+            <View style={styles.cardInfo}>
+              <Text style={styles.cardBrand}>{campaign.brand}</Text>
+              <Text style={styles.cardTitle} numberOfLines={1}>{campaign.title}</Text>
+            </View>
+            <Badge variant={badge.variant} label={badge.label} />
+          </View>
+
+          {/* Metrics */}
+          <View style={styles.metricsRow}>
+            <View style={styles.metric}>
+              <Feather name="map-pin" size={14} color={Colors.gray500} />
+              <Text style={styles.metricText}>{campaign.city}</Text>
+            </View>
+            <View style={styles.metric}>
+              <Feather name="dollar-sign" size={14} color={Colors.gray500} />
+              <Text style={styles.metricText}>{campaign.reward} €</Text>
+            </View>
+            <View style={styles.metric}>
+              <Feather name="calendar" size={14} color={Colors.gray500} />
+              <Text style={styles.metricText}>{campaign.durationDays}j</Text>
+            </View>
+          </View>
+
+          {/* Driver count bar */}
+          <View style={styles.driverBar}>
+            <Text style={styles.driverLabel}>
+              {campaign.driversAssigned}/{campaign.driversNeeded} chauffeurs
+            </Text>
+            <View style={styles.progressTrack}>
+              <LinearGradient
+                colors={[Colors.navyDark, Colors.navyLight]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={[styles.progressFill, { width: `${driverPct}%` }]}
+              />
+            </View>
+          </View>
+
+          {/* Km progress for active */}
+          {campaign.status === 'active' && (
+            <View style={styles.kmBar}>
+              <Text style={styles.driverLabel}>
+                {campaign.kmDone.toLocaleString()}/{campaign.kmTotal.toLocaleString()} km
+              </Text>
+              <View style={styles.progressTrack}>
+                <LinearGradient
+                  colors={['#10B981', '#34D399']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={[styles.progressFill, { width: `${Math.round(campaign.progress * 100)}%` }]}
+                />
+              </View>
+              <Text style={styles.pctLabel}>{Math.round(campaign.progress * 100)}%</Text>
+            </View>
+          )}
+
+          {/* Actions */}
+          <View style={styles.actionsRow}>
+            {campaign.driversAssigned < campaign.driversNeeded && campaign.status !== 'completed' && (
+              <View style={styles.actionBtn}>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  icon="user-plus"
+                  onPress={() => setAssignCampaign(campaign)}
+                >
+                  Assigner
+                </Button>
+              </View>
+            )}
+            {campaign.status === 'active' && (
+              <View style={styles.actionBtn}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  icon="bar-chart-2"
+                  onPress={() => setTrackCampaign(campaign)}
+                >
+                  Suivi
+                </Button>
+              </View>
+            )}
+          </View>
+        </View>
+      );
+    },
+    [],
+  );
+
+  const ListHeader = () => (
+    <View>
+      {/* Header */}
+      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+        <View style={styles.headerLeft}>
+          <Text style={styles.headerTitle}>Campagnes</Text>
+          <Text style={styles.headerSubtitle}>{campaigns.length} campagnes</Text>
+        </View>
+        <TouchableOpacity
+          onPress={() => setShowCreate(true)}
+          style={styles.addBtn}
+          activeOpacity={0.7}
+        >
+          <Feather name="plus" size={20} color={Colors.white} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Filter chips */}
+      <View style={styles.filterRow}>
         {FILTERS.map((f) => {
           const active = filter === f.key;
           return (
@@ -85,115 +187,28 @@ export default function AdminCampaignsScreen() {
             </TouchableOpacity>
           );
         })}
-      </ScrollView>
+      </View>
+    </View>
+  );
 
-      {/* Campaign list */}
-      <ScrollView
-        style={styles.flex}
+  const ListEmpty = () => (
+    <View style={styles.empty}>
+      <Feather name="volume-2" size={48} color={Colors.gray300} />
+      <Text style={styles.emptyText}>Aucune campagne trouvée</Text>
+    </View>
+  );
+
+  return (
+    <View style={styles.screen}>
+      <FlatList
+        data={filtered}
+        keyExtractor={(item) => item.id}
+        renderItem={renderCampaignItem}
+        ListHeaderComponent={ListHeader}
+        ListEmptyComponent={ListEmpty}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
-      >
-        {filtered.length === 0 ? (
-          <View style={styles.empty}>
-            <Feather name="volume-2" size={48} color={Colors.gray300} />
-            <Text style={styles.emptyText}>Aucune campagne trouvée</Text>
-          </View>
-        ) : (
-          filtered.map((campaign) => {
-            const badge = statusBadge[campaign.status];
-            const driverPct =
-              campaign.driversNeeded > 0
-                ? Math.round((campaign.driversAssigned / campaign.driversNeeded) * 100)
-                : 0;
-
-            return (
-              <Card key={campaign.id} variant="surface" style={styles.card}>
-                {/* Header */}
-                <View style={styles.cardHeader}>
-                  <BrandLogo domain={campaign.domain} name={campaign.brand} size={40} />
-                  <View style={styles.cardInfo}>
-                    <Text style={styles.cardBrand}>{campaign.brand}</Text>
-                    <Text style={styles.cardTitle} numberOfLines={1}>{campaign.title}</Text>
-                  </View>
-                  <Badge variant={badge.variant} label={badge.label} />
-                </View>
-
-                {/* Metrics */}
-                <View style={styles.metricsRow}>
-                  <View style={styles.metric}>
-                    <Feather name="map-pin" size={14} color={Colors.gray500} />
-                    <Text style={styles.metricText}>{campaign.city}</Text>
-                  </View>
-                  <View style={styles.metric}>
-                    <Feather name="dollar-sign" size={14} color={Colors.gray500} />
-                    <Text style={styles.metricText}>{campaign.reward} €</Text>
-                  </View>
-                  <View style={styles.metric}>
-                    <Feather name="calendar" size={14} color={Colors.gray500} />
-                    <Text style={styles.metricText}>{campaign.durationDays}j</Text>
-                  </View>
-                </View>
-
-                {/* Driver count bar */}
-                <View style={styles.driverBar}>
-                  <Text style={styles.driverLabel}>
-                    {campaign.driversAssigned}/{campaign.driversNeeded} chauffeurs
-                  </Text>
-                  <View style={styles.miniProgressTrack}>
-                    <View style={[styles.miniProgressFill, { width: `${driverPct}%` }]} />
-                  </View>
-                </View>
-
-                {/* Km progress for active */}
-                {campaign.status === 'active' && (
-                  <View style={styles.kmBar}>
-                    <Text style={styles.driverLabel}>
-                      {campaign.kmDone.toLocaleString()}/{campaign.kmTotal.toLocaleString()} km
-                    </Text>
-                    <View style={styles.miniProgressTrack}>
-                      <View
-                        style={[
-                          styles.miniProgressFillGreen,
-                          { width: `${Math.round(campaign.progress * 100)}%` },
-                        ]}
-                      />
-                    </View>
-                    <Text style={styles.pctLabel}>{Math.round(campaign.progress * 100)}%</Text>
-                  </View>
-                )}
-
-                {/* Actions */}
-                <View style={styles.actionsRow}>
-                  {campaign.driversAssigned < campaign.driversNeeded && campaign.status !== 'completed' && (
-                    <View style={styles.actionBtn}>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        icon="user-plus"
-                        onPress={() => setAssignCampaign(campaign)}
-                      >
-                        Assigner
-                      </Button>
-                    </View>
-                  )}
-                  {campaign.status === 'active' && (
-                    <View style={styles.actionBtn}>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        icon="bar-chart-2"
-                        onPress={() => setTrackCampaign(campaign)}
-                      >
-                        Suivi
-                      </Button>
-                    </View>
-                  )}
-                </View>
-              </Card>
-            );
-          })
-        )}
-      </ScrollView>
+      />
 
       <CreateCampaignModal visible={showCreate} onClose={() => setShowCreate(false)} />
       <AssignDriversModal
@@ -206,44 +221,72 @@ export default function AdminCampaignsScreen() {
         campaign={trackCampaign}
         onClose={() => setTrackCampaign(null)}
       />
-    </Screen>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
+  screen: {
+    flex: 1,
+    backgroundColor: Colors.navyTint,
+  },
 
-  addBtn: { padding: Spacing.xs },
+  // Header
+  header: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    marginBottom: Spacing.lg,
+  },
+  headerLeft: {},
+  headerTitle: {
+    fontFamily: FontFamily.bold,
+    fontSize: 20,
+    color: Colors.navy,
+  },
+  headerSubtitle: {
+    fontFamily: FontFamily.regular,
+    fontSize: 12,
+    color: Colors.gray500,
+    marginTop: 2,
+  },
+  addBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    backgroundColor: Colors.navy,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Shadows.md,
+  },
 
   // Filters
   filterRow: {
-    paddingHorizontal: Spacing.xl,
+    flexDirection: 'row',
+    paddingHorizontal: 20,
     paddingBottom: Spacing.lg,
     gap: Spacing.sm,
   },
   filterChip: {
     paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radius.full,
-    backgroundColor: Colors.white,
-    borderWidth: 1.5,
-    borderColor: Colors.gray200,
+    paddingVertical: Spacing.xs + 2,
+    borderRadius: 100,
   },
   filterChipActive: {
     backgroundColor: Colors.navy,
-    borderColor: Colors.navy,
   },
   filterText: {
     ...Typography.bodySmall,
     fontFamily: FontFamily.medium,
-    color: Colors.gray600,
+    color: Colors.gray500,
   },
   filterTextActive: { color: Colors.white },
 
   // List
   listContent: {
-    paddingHorizontal: Spacing.xl,
-    paddingBottom: Spacing.huge,
+    paddingHorizontal: 20,
+    paddingBottom: TAB_BAR_HEIGHT + TAB_BAR_BOTTOM + 20,
   },
   empty: {
     alignItems: 'center',
@@ -253,7 +296,15 @@ const styles = StyleSheet.create({
   emptyText: { ...Typography.body, color: Colors.gray400 },
 
   // Card
-  card: { marginBottom: Spacing.md },
+  card: {
+    backgroundColor: Colors.white,
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.gray200,
+    ...Shadows.sm,
+  },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -287,17 +338,16 @@ const styles = StyleSheet.create({
     color: Colors.gray600,
     minWidth: 90,
   },
-  miniProgressTrack: {
+  progressTrack: {
     flex: 1,
-    height: 5,
-    backgroundColor: Colors.gray200,
-    borderRadius: 3,
+    height: 7,
+    backgroundColor: Colors.gray100,
+    borderRadius: 4,
     overflow: 'hidden',
   },
-  miniProgressFill: {
-    height: 5,
-    backgroundColor: Colors.navy,
-    borderRadius: 3,
+  progressFill: {
+    height: 7,
+    borderRadius: 4,
   },
 
   // Km bar
@@ -306,11 +356,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.sm,
     marginBottom: Spacing.sm,
-  },
-  miniProgressFillGreen: {
-    height: 5,
-    backgroundColor: Colors.success,
-    borderRadius: 3,
   },
   pctLabel: {
     ...Typography.caption,

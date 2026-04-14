@@ -1,18 +1,33 @@
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/Colors';
 import { Typography, FontFamily } from '../../constants/Typography';
 import { Spacing, Radius, Shadows } from '../../constants/Spacing';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
-import Screen from '../../components/ui/Screen';
-import Card from '../../components/ui/Card';
 import Badge from '../../components/ui/Badge';
-import Button from '../../components/ui/Button';
 import BrandLogo from '../../components/BrandLogo';
+import { TAB_BAR_HEIGHT, TAB_BAR_BOTTOM } from '../../constants/TabBarStyle';
+
+type MenuItem = {
+  icon: keyof typeof Feather.glyphMap;
+  label: string;
+  danger?: boolean;
+  route?: string;
+};
+
+const MENU_ITEMS: MenuItem[] = [
+  { icon: 'edit', label: 'Modifier le profil' },
+  { icon: 'credit-card', label: 'Facturation' },
+  { icon: 'settings', label: 'Paramètres' },
+  { icon: 'help-circle', label: 'Aide & Support' },
+  { icon: 'log-out', label: 'Se déconnecter', danger: true },
+];
 
 export default function CompanyProfileScreen() {
+  const insets = useSafeAreaInsets();
   const { currentCompany, logout } = useAuth();
   const { campaigns } = useData();
 
@@ -23,15 +38,24 @@ export default function CompanyProfileScreen() {
   const totalBudget = companyCampaigns.reduce((sum, c) => sum + c.reward * c.driversNeeded, 0);
   const uniqueCities = [...new Set(companyCampaigns.map((c) => c.city))];
 
-  const handleLogout = async () => {
-    await logout();
-    router.replace('/(auth)/welcome');
+  const handleMenuPress = (item: MenuItem) => {
+    if (item.danger) {
+      logout().then(() => {
+        router.replace('/(auth)/welcome');
+      });
+    } else if (item.route) {
+      router.push(item.route as any);
+    }
   };
 
   return (
-    <Screen scroll>
-      <View style={styles.content}>
-        {/* Header */}
+    <View style={[styles.screen, { paddingTop: insets.top }]}>
+      <ScrollView
+        style={styles.flex}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Avatar + Name */}
         <View style={styles.profileHeader}>
           <BrandLogo
             domain={company?.domain ?? 'company.com'}
@@ -45,139 +69,228 @@ export default function CompanyProfileScreen() {
           </View>
         </View>
 
+        {/* Stats row */}
+        <View style={styles.statsRow}>
+          <View style={styles.stat}>
+            <Text style={styles.statValue}>{companyCampaigns.length}</Text>
+            <Text style={styles.statLabel}>campagnes</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.stat}>
+            <Text style={styles.statValue}>{totalBudget.toLocaleString()} €</Text>
+            <Text style={styles.statLabel}>budget total</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.stat}>
+            <Text style={styles.statValue}>{uniqueCities.length}</Text>
+            <Text style={styles.statLabel}>villes</Text>
+          </View>
+        </View>
+
         {/* Contact info card */}
-        <Card variant="surface" style={styles.infoCard}>
+        <View style={styles.infoCard}>
           <Text style={styles.cardTitle}>Informations de contact</Text>
           <View style={styles.infoRow}>
-            <Feather name="user" size={18} color={Colors.gray500} />
+            <View style={styles.infoIconWrap}>
+              <Feather name="user" size={16} color={Colors.navy} />
+            </View>
             <Text style={styles.infoValue}>{company?.contactName ?? '—'}</Text>
           </View>
           <View style={styles.infoRow}>
-            <Feather name="mail" size={18} color={Colors.gray500} />
+            <View style={styles.infoIconWrap}>
+              <Feather name="mail" size={16} color={Colors.navy} />
+            </View>
             <Text style={styles.infoValue}>{company?.email ?? '—'}</Text>
           </View>
           <View style={styles.infoRow}>
-            <Feather name="phone" size={18} color={Colors.gray500} />
+            <View style={styles.infoIconWrap}>
+              <Feather name="phone" size={16} color={Colors.navy} />
+            </View>
             <Text style={styles.infoValue}>{company?.phone ?? '—'}</Text>
           </View>
           {company?.website ? (
             <View style={styles.infoRow}>
-              <Feather name="globe" size={18} color={Colors.gray500} />
+              <View style={styles.infoIconWrap}>
+                <Feather name="globe" size={16} color={Colors.navy} />
+              </View>
               <Text style={styles.infoValue}>{company.website}</Text>
             </View>
           ) : null}
-        </Card>
-
-        {/* Activity card */}
-        <Card variant="surface" style={styles.infoCard}>
-          <Text style={styles.cardTitle}>Activité</Text>
-          <View style={styles.activityRow}>
-            <View style={styles.activityStat}>
-              <Text style={styles.activityValue}>{companyCampaigns.length}</Text>
-              <Text style={styles.activityLabel}>Campagnes lancées</Text>
-            </View>
-            <View style={styles.activityDivider} />
-            <View style={styles.activityStat}>
-              <Text style={styles.activityValue}>{totalBudget.toLocaleString()} €</Text>
-              <Text style={styles.activityLabel}>Budget total</Text>
-            </View>
-            <View style={styles.activityDivider} />
-            <View style={styles.activityStat}>
-              <Text style={styles.activityValue}>{uniqueCities.length}</Text>
-              <Text style={styles.activityLabel}>Villes ciblées</Text>
-            </View>
-          </View>
-        </Card>
-
-        {/* Actions */}
-        <View style={styles.actions}>
-          <Button variant="outline" size="lg" icon="edit" onPress={() => {}}>
-            Modifier le profil
-          </Button>
-          <View style={styles.actionSpacer} />
-          <Button variant="danger" size="lg" icon="log-out" onPress={handleLogout}>
-            Se déconnecter
-          </Button>
         </View>
-      </View>
-    </Screen>
+
+        {/* Menu list */}
+        <View style={styles.menuCard}>
+          {MENU_ITEMS.map((item, index) => (
+            <TouchableOpacity
+              key={item.label}
+              style={[
+                styles.menuItem,
+                index < MENU_ITEMS.length - 1 && styles.menuItemBorder,
+              ]}
+              onPress={() => handleMenuPress(item)}
+              activeOpacity={0.6}
+            >
+              <View style={[styles.menuIconWrap, item.danger && styles.menuIconDanger]}>
+                <Feather
+                  name={item.icon}
+                  size={18}
+                  color={item.danger ? Colors.danger : Colors.navy}
+                />
+              </View>
+              <Text
+                style={[
+                  styles.menuLabel,
+                  item.danger && styles.menuLabelDanger,
+                ]}
+              >
+                {item.label}
+              </Text>
+              <Feather
+                name="chevron-right"
+                size={18}
+                color={item.danger ? Colors.danger : Colors.gray400}
+              />
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <View style={{ height: TAB_BAR_HEIGHT + TAB_BAR_BOTTOM + 16 }} />
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  content: {
-    paddingHorizontal: Spacing.xl,
-    paddingBottom: Spacing.huge,
+  screen: {
+    flex: 1,
+    backgroundColor: Colors.navyTint,
+  },
+  flex: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 20,
   },
 
-  // Header
+  // Profile header
   profileHeader: {
     alignItems: 'center',
-    paddingVertical: Spacing.xxl,
+    paddingVertical: 24,
   },
   name: {
-    ...Typography.h1,
+    fontFamily: FontFamily.black,
+    fontSize: 20,
     color: Colors.black,
-    marginTop: Spacing.lg,
-    marginBottom: Spacing.md,
+    marginTop: 12,
+    marginBottom: 8,
   },
   badgeRow: {
     flexDirection: 'row',
-    gap: Spacing.sm,
+    gap: 6,
   },
 
-  // Info card
-  infoCard: {
-    marginBottom: Spacing.lg,
+  // Stats row
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 12,
+    ...Shadows.sm,
   },
-  cardTitle: {
-    ...Typography.h3,
+  stat: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  statValue: {
+    fontFamily: FontFamily.bold,
+    fontSize: 16,
     color: Colors.black,
-    marginBottom: Spacing.lg,
   },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    marginBottom: Spacing.md,
+  statLabel: {
+    fontFamily: FontFamily.medium,
+    fontSize: 11,
+    color: Colors.gray500,
+    marginTop: 2,
   },
-  infoValue: {
-    ...Typography.body,
-    color: Colors.gray700,
-    flex: 1,
-  },
-
-  // Activity
-  activityRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  activityStat: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  activityDivider: {
+  statDivider: {
     width: 1,
     height: 32,
     backgroundColor: Colors.gray200,
   },
-  activityValue: {
-    fontFamily: FontFamily.bold,
-    fontSize: 16,
-    color: Colors.navy,
+
+  // Info card
+  infoCard: {
+    backgroundColor: Colors.white,
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 12,
+    ...Shadows.sm,
   },
-  activityLabel: {
-    ...Typography.caption,
-    color: Colors.gray500,
-    marginTop: 2,
-    textAlign: 'center',
+  cardTitle: {
+    fontFamily: FontFamily.bold,
+    fontSize: 15,
+    color: Colors.black,
+    marginBottom: 14,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 10,
+  },
+  infoIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: Colors.navySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  infoValue: {
+    fontFamily: FontFamily.regular,
+    fontSize: 13,
+    color: Colors.gray700,
+    flex: 1,
   },
 
-  // Actions
-  actions: {
-    marginTop: Spacing.lg,
+  // Menu
+  menuCard: {
+    backgroundColor: Colors.white,
+    borderRadius: 20,
+    overflow: 'hidden',
+    ...Shadows.sm,
   },
-  actionSpacer: {
-    height: Spacing.md,
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  menuItemBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.gray100,
+  },
+  menuIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: Colors.navySoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  menuIconDanger: {
+    backgroundColor: Colors.dangerSoft,
+  },
+  menuLabel: {
+    fontFamily: FontFamily.medium,
+    fontSize: 14,
+    color: Colors.black,
+    flex: 1,
+  },
+  menuLabelDanger: {
+    color: Colors.danger,
   },
 });
