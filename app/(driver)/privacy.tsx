@@ -61,7 +61,7 @@ export default function PrivacyScreen() {
           <View style={styles.contactWrap}>
             <Feather name="mail" size={14} color={Colors.gray500} />
             <Text style={styles.contactText}>
-              Pour toute question: privacy@driveads.com
+              Pour toute question: privacy@publeader.com
             </Text>
           </View>
         </View>

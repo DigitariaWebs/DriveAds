@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { UserRole, Driver, Company } from '../constants/Types';
 import { mockDrivers, mockCompanies } from '../mocks/data';
 
-const ROLE_STORAGE_KEY = '@driveads_role';
+const ROLE_STORAGE_KEY = '@publeader_role';
 
 type AuthState = {
   role: UserRole | null;

@@ -10,11 +10,11 @@ import { TAB_BAR_HEIGHT, TAB_BAR_BOTTOM } from '../../constants/TabBarStyle';
 const SECTIONS = [
   {
     title: '1. Acceptation',
-    body: "En utilisant l'application DriveAds, vous acceptez sans réserve les présentes conditions d'utilisation. Si vous n'acceptez pas ces conditions, veuillez ne pas utiliser nos services. L'utilisation continue de l'application après toute modification des conditions constitue votre acceptation de ces changements.",
+    body: "En utilisant l'application Publeader, vous acceptez sans réserve les présentes conditions d'utilisation. Si vous n'acceptez pas ces conditions, veuillez ne pas utiliser nos services. L'utilisation continue de l'application après toute modification des conditions constitue votre acceptation de ces changements.",
   },
   {
     title: '2. Services',
-    body: "DriveAds est une plateforme de mise en relation entre annonceurs et conducteurs souhaitant afficher de la publicité sur leur véhicule. Nous facilitons le processus de sélection des campagnes, le suivi des trajets et le paiement des conducteurs participants. Les services peuvent être modifiés ou interrompus à tout moment sans préavis.",
+    body: "Publeader est une plateforme de mise en relation entre annonceurs et conducteurs souhaitant afficher de la publicité sur leur véhicule. Nous facilitons le processus de sélection des campagnes, le suivi des trajets et le paiement des conducteurs participants. Les services peuvent être modifiés ou interrompus à tout moment sans préavis.",
   },
   {
     title: '3. Inscription',
@@ -26,15 +26,15 @@ const SECTIONS = [
   },
   {
     title: '5. Paiements',
-    body: "Les paiements sont effectués conformément aux conditions de chaque campagne. DriveAds se réserve le droit de retenir les paiements en cas de suspicion de fraude ou de non-respect des conditions de la campagne. Les conducteurs sont responsables de leurs obligations fiscales liées aux revenus perçus via la plateforme.",
+    body: "Les paiements sont effectués conformément aux conditions de chaque campagne. Publeader se réserve le droit de retenir les paiements en cas de suspicion de fraude ou de non-respect des conditions de la campagne. Les conducteurs sont responsables de leurs obligations fiscales liées aux revenus perçus via la plateforme.",
   },
   {
     title: '6. Responsabilités',
-    body: "DriveAds ne peut être tenu responsable des dommages directs ou indirects résultant de l'utilisation de la plateforme. Les conducteurs sont responsables de leur véhicule et de leur conduite. DriveAds n'est pas responsable des accidents, des dommages au véhicule ou des infractions au code de la route.",
+    body: "Publeader ne peut être tenu responsable des dommages directs ou indirects résultant de l'utilisation de la plateforme. Les conducteurs sont responsables de leur véhicule et de leur conduite. Publeader n'est pas responsable des accidents, des dommages au véhicule ou des infractions au code de la route.",
   },
   {
     title: '7. Modifications',
-    body: "DriveAds se réserve le droit de modifier les présentes conditions à tout moment. Les utilisateurs seront informés de tout changement significatif par email ou notification dans l'application. La poursuite de l'utilisation des services après notification des modifications vaut acceptation des nouvelles conditions.",
+    body: "Publeader se réserve le droit de modifier les présentes conditions à tout moment. Les utilisateurs seront informés de tout changement significatif par email ou notification dans l'application. La poursuite de l'utilisation des services après notification des modifications vaut acceptation des nouvelles conditions.",
   },
 ];
 

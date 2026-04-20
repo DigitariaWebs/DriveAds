@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/Colors';
 import { Typography, FontFamily } from '../../constants/Typography';
@@ -116,33 +117,94 @@ export default function RegisterCompanyScreen() {
   };
 
   return (
-    <View style={[styles.screen, { paddingTop: insets.top }]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Feather name="arrow-left" size={24} color={Colors.navy} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Inscription Entreprise</Text>
-        <View style={styles.backBtn} />
-      </View>
-
+    <View style={styles.screen}>
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
           style={styles.flex}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingTop: insets.top + Spacing.md },
+          ]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* Live brand logo preview */}
-          {domain.trim().length > 3 && (
-            <View style={styles.logoPreview}>
-              <BrandLogo domain={domain.trim()} name={companyName || domain} size={64} />
-              <Text style={styles.logoHint}>Aperçu du logo</Text>
+          {/* ─── Hero card ───────────────────────────────── */}
+          <View style={styles.heroCard}>
+            <LinearGradient
+              colors={['#1A2752', '#2E3F7A', '#233466']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+            <View style={styles.heroGlowWrap} pointerEvents="none">
+              <LinearGradient
+                colors={['rgba(244,184,81,0.5)', 'rgba(244,184,81,0)']}
+                style={styles.heroGlow}
+                start={{ x: 0.5, y: 0 }}
+                end={{ x: 0.5, y: 1 }}
+              />
             </View>
-          )}
+            <View style={styles.heroGlowWrap2} pointerEvents="none">
+              <LinearGradient
+                colors={['rgba(150,170,255,0.22)', 'rgba(150,170,255,0)']}
+                style={styles.heroGlow}
+                start={{ x: 0.5, y: 0 }}
+                end={{ x: 0.5, y: 1 }}
+              />
+            </View>
+
+            <View style={styles.heroContent}>
+              <View style={styles.heroTopRow}>
+                <TouchableOpacity
+                  onPress={() => router.back()}
+                  style={styles.heroBackBtn}
+                  activeOpacity={0.7}
+                >
+                  <Feather name="arrow-left" size={18} color={Colors.white} />
+                </TouchableOpacity>
+
+                <View style={styles.heroBadge}>
+                  <Feather name="briefcase" size={12} color={Colors.white} />
+                  <Text style={styles.heroBadgeText}>Entreprise</Text>
+                </View>
+              </View>
+
+              <Text style={styles.heroEyebrow}>INSCRIPTION ENTREPRISE</Text>
+              <Text style={styles.heroTitle}>
+                Lancez votre{'\n'}première campagne
+              </Text>
+              <Text style={styles.heroSubtitle}>
+                Présentez votre marque — notre équipe valide votre dossier
+                sous 48 h.
+              </Text>
+
+              {/* Info chip */}
+              <View style={styles.heroInfoChip}>
+                <View style={styles.heroInfoIcon}>
+                  <Feather name="clock" size={14} color="#1A2752" />
+                </View>
+                <Text style={styles.heroInfoLabel}>Validation sous 48 h</Text>
+                <View style={{ flex: 1 }} />
+                <View style={styles.heroInfoDot} />
+                <Text style={styles.heroInfoStatus}>gratuit</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* ─── Form card ───────────────────────────────── */}
+          <View style={styles.formCard}>
+            <Text style={styles.formCardLabel}>VOTRE MARQUE</Text>
+
+            {/* Live brand logo preview */}
+            {domain.trim().length > 3 && (
+              <View style={styles.logoPreview}>
+                <BrandLogo domain={domain.trim()} name={companyName || domain} size={64} />
+                <Text style={styles.logoHint}>Aperçu du logo</Text>
+              </View>
+            )}
 
           <Input
             label="Nom de l'entreprise"
@@ -275,6 +337,7 @@ export default function RegisterCompanyScreen() {
               Soumettre ma demande
             </Button>
           </View>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -284,35 +347,162 @@ export default function RegisterCompanyScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: Colors.navyTint,
+    backgroundColor: '#F4F4EF',
   },
   flex: {
     flex: 1,
   },
 
-  // Header
-  header: {
+  scrollContent: {
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.huge,
+  },
+
+  // ─── Hero card ────────────────────────────────────────
+  heroCard: {
+    borderRadius: 28,
+    overflow: 'hidden',
+    marginBottom: Spacing.lg,
+    minHeight: 280,
+    shadowColor: Colors.navy,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.18,
+    shadowRadius: 24,
+    elevation: 8,
+  },
+  heroGlowWrap: {
+    position: 'absolute',
+    top: -120,
+    right: -100,
+    width: 360,
+    height: 360,
+  },
+  heroGlowWrap2: {
+    position: 'absolute',
+    bottom: -120,
+    left: -80,
+    width: 320,
+    height: 320,
+  },
+  heroGlow: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 999,
+  },
+  heroContent: {
+    padding: Spacing.xxl,
+    paddingTop: Spacing.xl,
+  },
+  heroTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    justifyContent: 'space-between',
+    marginBottom: Spacing.xl,
   },
-  backBtn: {
-    width: 40,
-    height: 40,
+  heroBackBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerTitle: {
-    ...Typography.h3,
-    color: Colors.navy,
-    flex: 1,
-    textAlign: 'center',
+  heroBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: Radius.full,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  heroBadgeText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 11,
+    color: Colors.white,
+    letterSpacing: 0.3,
+  },
+  heroEyebrow: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 10.5,
+    letterSpacing: 1,
+    color: 'rgba(255,255,255,0.7)',
+    marginBottom: 10,
+  },
+  heroTitle: {
+    fontFamily: FontFamily.black,
+    fontSize: 28,
+    lineHeight: 34,
+    color: Colors.white,
+    letterSpacing: -0.5,
+    marginBottom: 6,
+  },
+  heroSubtitle: {
+    fontFamily: FontFamily.regular,
+    fontSize: 13.5,
+    lineHeight: 20,
+    color: 'rgba(255,255,255,0.72)',
+    marginBottom: Spacing.xl,
+  },
+  heroInfoChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    padding: 12,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  heroInfoIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 10,
+    backgroundColor: '#F4B851',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroInfoLabel: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 12,
+    color: Colors.white,
+  },
+  heroInfoDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#7FE8B0',
+    marginRight: 6,
+  },
+  heroInfoStatus: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 11,
+    color: '#7FE8B0',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
   },
 
-  scrollContent: {
-    paddingHorizontal: Spacing.xl,
-    paddingBottom: Spacing.huge,
+  // ─── Form card ────────────────────────────────────────
+  formCard: {
+    backgroundColor: Colors.white,
+    borderRadius: 24,
+    padding: Spacing.xxl,
+    shadowColor: Colors.navy,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
+    elevation: 2,
+  },
+  formCardLabel: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 10.5,
+    letterSpacing: 1,
+    color: Colors.navyLight,
+    marginBottom: Spacing.lg,
   },
 
   // Logo preview
@@ -329,9 +519,12 @@ const styles = StyleSheet.create({
 
   // Chip picker
   pickerLabel: {
-    ...Typography.caption,
+    fontFamily: FontFamily.semiBold,
+    fontSize: 11,
     color: Colors.gray600,
-    marginBottom: Spacing.xs,
+    marginBottom: Spacing.sm,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   chipRow: {
     flexDirection: 'row',
@@ -340,24 +533,26 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   chip: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: Radius.full,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: Colors.gray200,
     backgroundColor: Colors.white,
   },
   chipActive: {
     borderColor: Colors.navy,
-    backgroundColor: Colors.navySoft,
+    backgroundColor: Colors.navy,
   },
   chipText: {
-    ...Typography.bodySmall,
+    fontFamily: FontFamily.medium,
+    fontSize: 12.5,
     color: Colors.gray600,
   },
   chipTextActive: {
-    fontFamily: FontFamily.semiBold,
-    color: Colors.navy,
+    fontFamily: FontFamily.bold,
+    fontSize: 12.5,
+    color: Colors.white,
   },
 
   // Budget radio list
@@ -371,10 +566,10 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.lg,
-    borderRadius: Radius.md,
-    borderWidth: 1.5,
-    borderColor: Colors.gray200,
-    backgroundColor: Colors.white,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.gray100,
+    backgroundColor: '#FAFAF7',
   },
   budgetOptionActive: {
     borderColor: Colors.navy,

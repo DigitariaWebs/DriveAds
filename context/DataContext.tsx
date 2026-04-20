@@ -39,6 +39,8 @@ type DataContextType = {
   acceptCampaign: (campaignId: string, driverId: string) => void;
   // Notification actions
   markNotificationRead: (id: string) => void;
+  deleteNotification: (id: string) => void;
+  archiveNotification: (id: string) => void;
   markAllNotificationsRead: () => void;
   unreadCount: number;
 };
@@ -117,6 +119,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })));
   };
 
+  const deleteNotification = (id: string) => {
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+  };
+
+  const archiveNotification = (id: string) => {
+    // Archive = mark as read + remove from the active list
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+  };
+
   const unreadCount = notifications.filter((n) => n.unread).length;
 
   return (
@@ -138,6 +149,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
         acceptCampaign,
         markNotificationRead,
         markAllNotificationsRead,
+        deleteNotification,
+        archiveNotification,
         unreadCount,
       }}
     >

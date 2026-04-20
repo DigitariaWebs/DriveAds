@@ -1,32 +1,25 @@
 import { Tabs } from 'expo-router';
 import { Colors } from '../../constants/Colors';
-import { tabBarScreenOptions } from '../../constants/TabBarStyle';
 import { useData } from '../../context/DataContext';
-import TabIcon from '../../components/TabIcon';
+import GlassTabBar from '../../components/GlassTabBar';
+
+const DRIVER_ICONS = {
+  home: { icon: 'home' as const, label: 'Accueil' },
+  campaigns: { icon: 'volume-2' as const, label: 'Campagnes' },
+  notifications: { icon: 'bell' as const, label: 'Notifications' },
+  profile: { icon: 'user' as const, label: 'Profil' },
+};
 
 export default function DriverLayout() {
   const { unreadCount } = useData();
 
   return (
-    <Tabs screenOptions={tabBarScreenOptions}>
-      <Tabs.Screen
-        name="home"
-        options={{
-          title: 'Accueil',
-          tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon="home" />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="campaigns"
-        options={{
-          title: 'Campagnes',
-          tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon="volume-2" />
-          ),
-        }}
-      />
+    <Tabs
+      screenOptions={{ headerShown: false }}
+      tabBar={(props) => <GlassTabBar {...props} iconMap={DRIVER_ICONS} />}
+    >
+      <Tabs.Screen name="home" options={{ title: 'Accueil' }} />
+      <Tabs.Screen name="campaigns" options={{ title: 'Campagnes' }} />
       <Tabs.Screen name="campaign/[id]" options={{ href: null }} />
       <Tabs.Screen name="my-campaigns" options={{ href: null }} />
       <Tabs.Screen name="my-cars" options={{ href: null }} />
@@ -47,22 +40,15 @@ export default function DriverLayout() {
         name="notifications"
         options={{
           title: 'Notifications',
-          tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon="bell" />
-          ),
           tabBarBadge: unreadCount > 0 ? unreadCount : undefined,
-          tabBarBadgeStyle: { backgroundColor: Colors.danger, fontSize: 9, fontWeight: '700' },
+          tabBarBadgeStyle: {
+            backgroundColor: Colors.danger,
+            fontSize: 9,
+            fontWeight: '700',
+          },
         }}
       />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Profil',
-          tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon="user" />
-          ),
-        }}
-      />
+      <Tabs.Screen name="profile" options={{ title: 'Profil' }} />
     </Tabs>
   );
 }

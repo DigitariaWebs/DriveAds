@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/Colors';
 import { Typography, FontFamily } from '../../constants/Typography';
@@ -25,11 +26,33 @@ import Button from '../../components/ui/Button';
 const CITIES = ['Paris', 'Lyon', 'Caen', 'Marseille', 'Nice', 'Bordeaux'] as const;
 const VEHICLE_TYPES = ['Berline', 'SUV', 'Utilitaire', 'Autre'] as const;
 
-const STEP_LABELS = [
-  'Identité',
-  'Véhicule',
-  'Sécurité',
-  'Documents',
+type StepMeta = {
+  label: string;
+  title: string;
+  subtitle: string;
+};
+
+const STEPS: StepMeta[] = [
+  {
+    label: 'Identité',
+    title: 'Parlez-nous de vous',
+    subtitle: 'Quelques informations pour créer votre profil chauffeur.',
+  },
+  {
+    label: 'Véhicule',
+    title: 'Votre véhicule',
+    subtitle: 'Ajoutez les détails qui aideront à vous matcher aux campagnes.',
+  },
+  {
+    label: 'Sécurité',
+    title: 'Sécurisez votre compte',
+    subtitle: 'Choisissez un mot de passe et acceptez les conditions.',
+  },
+  {
+    label: 'Documents',
+    title: 'Derniers documents',
+    subtitle: 'Importez vos pièces pour finaliser la validation.',
+  },
 ];
 
 const DOCUMENTS = [
@@ -431,40 +454,108 @@ export default function RegisterDriverScreen() {
   );
 
   const steps = [renderStep1, renderStep2, renderStep3, renderStep4];
+  const current = STEPS[step - 1];
+  const percent = Math.round(progressPercent);
 
   // ─── Render ───────────────────────────────────────────────
   return (
-    <View style={[styles.screen, { paddingTop: insets.top }]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={goBack} style={styles.backBtn}>
-          <Feather name="arrow-left" size={24} color={Colors.navy} />
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.stepLabel}>
-            Étape {step}/4 · {STEP_LABELS[step - 1]}
-          </Text>
-        </View>
-        <View style={styles.backBtn} />
-      </View>
-
-      {/* Progress bar */}
-      <View style={styles.progressTrack}>
-        <Animated.View style={[styles.progressFill, { width: progressWidth }]} />
-      </View>
-
-      {/* Content */}
+    <View style={styles.screen}>
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
           style={styles.flex}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingTop: insets.top + Spacing.md },
+          ]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {steps[step - 1]()}
+          {/* ─── Hero card ───────────────────────────────── */}
+          <View style={styles.heroCard}>
+            <LinearGradient
+              colors={['#1A2752', '#2E3F7A', '#233466']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+            {/* Warm radial glow */}
+            <View style={styles.heroGlowWrap} pointerEvents="none">
+              <LinearGradient
+                colors={['rgba(244,184,81,0.55)', 'rgba(244,184,81,0)']}
+                style={styles.heroGlow}
+                start={{ x: 0.5, y: 0 }}
+                end={{ x: 0.5, y: 1 }}
+              />
+            </View>
+            {/* Secondary cool glow */}
+            <View style={styles.heroGlowWrap2} pointerEvents="none">
+              <LinearGradient
+                colors={['rgba(150,170,255,0.25)', 'rgba(150,170,255,0)']}
+                style={styles.heroGlow}
+                start={{ x: 0.5, y: 0 }}
+                end={{ x: 0.5, y: 1 }}
+              />
+            </View>
+
+            <View style={styles.heroContent}>
+              <View style={styles.heroTopRow}>
+                <TouchableOpacity
+                  onPress={goBack}
+                  style={styles.heroBackBtn}
+                  activeOpacity={0.7}
+                >
+                  <Feather name="arrow-left" size={18} color={Colors.white} />
+                </TouchableOpacity>
+
+                <View style={styles.heroDotsRow}>
+                  {[1, 2, 3, 4].map((i) => (
+                    <View
+                      key={i}
+                      style={[
+                        styles.heroDot,
+                        i < step && styles.heroDotDone,
+                        i === step && styles.heroDotActive,
+                      ]}
+                    />
+                  ))}
+                </View>
+              </View>
+
+              <Text style={styles.heroEyebrow}>
+                INSCRIPTION · ÉTAPE {step} SUR 4
+              </Text>
+              <Text style={styles.heroTitle}>{current.title}</Text>
+              <Text style={styles.heroSubtitle}>{current.subtitle}</Text>
+
+              {/* Progress chip */}
+              <View style={styles.heroProgressChip}>
+                <View style={styles.heroProgressNum}>
+                  <Text style={styles.heroProgressNumText}>{step}</Text>
+                </View>
+                <View style={styles.heroProgressCol}>
+                  <Text style={styles.heroProgressLabel}>{current.label}</Text>
+                  <View style={styles.heroProgressBarTrack}>
+                    <Animated.View
+                      style={[
+                        styles.heroProgressBarFill,
+                        { width: progressWidth },
+                      ]}
+                    />
+                  </View>
+                </View>
+                <Text style={styles.heroProgressPct}>{percent}%</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* ─── Form card ───────────────────────────────── */}
+          <View style={styles.formCard}>
+            <Text style={styles.formCardLabel}>{current.label.toUpperCase()}</Text>
+            {steps[step - 1]()}
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -475,60 +566,186 @@ export default function RegisterDriverScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: Colors.navyTint,
+    backgroundColor: '#F4F4EF',
   },
   flex: {
     flex: 1,
   },
 
-  // Header
-  header: {
+  // Scroll content
+  scrollContent: {
+    paddingHorizontal: Spacing.lg,
+    paddingBottom: Spacing.huge,
+  },
+
+  // ─── Hero card ────────────────────────────────────────
+  heroCard: {
+    borderRadius: 28,
+    overflow: 'hidden',
+    marginBottom: Spacing.lg,
+    minHeight: 260,
+    shadowColor: Colors.navy,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.18,
+    shadowRadius: 24,
+    elevation: 8,
+  },
+  heroGlowWrap: {
+    position: 'absolute',
+    top: -120,
+    right: -100,
+    width: 360,
+    height: 360,
+  },
+  heroGlowWrap2: {
+    position: 'absolute',
+    bottom: -120,
+    left: -80,
+    width: 320,
+    height: 320,
+  },
+  heroGlow: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 999,
+  },
+  heroContent: {
+    padding: Spacing.xxl,
+    paddingTop: Spacing.xl,
+  },
+  heroTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    justifyContent: 'space-between',
+    marginBottom: Spacing.xl,
   },
-  backBtn: {
-    width: 40,
-    height: 40,
+  heroBackBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerCenter: {
-    flex: 1,
+  heroDotsRow: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  heroDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+  },
+  heroDotDone: {
+    backgroundColor: 'rgba(255,255,255,0.7)',
+  },
+  heroDotActive: {
+    width: 22,
+    backgroundColor: '#F4B851',
+  },
+  heroEyebrow: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 10.5,
+    letterSpacing: 1,
+    color: 'rgba(255,255,255,0.7)',
+    marginBottom: 10,
+  },
+  heroTitle: {
+    fontFamily: FontFamily.black,
+    fontSize: 28,
+    lineHeight: 34,
+    color: Colors.white,
+    letterSpacing: -0.5,
+    marginBottom: 6,
+  },
+  heroSubtitle: {
+    fontFamily: FontFamily.regular,
+    fontSize: 13.5,
+    lineHeight: 20,
+    color: 'rgba(255,255,255,0.72)',
+    marginBottom: Spacing.xl,
+  },
+
+  // Progress chip
+  heroProgressChip: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: Spacing.md,
+    padding: 12,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
   },
-  stepLabel: {
-    ...Typography.bodyMedium,
-    color: Colors.navy,
+  heroProgressNum: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    backgroundColor: '#F4B851',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-
-  // Progress
-  progressTrack: {
+  heroProgressNumText: {
+    fontFamily: FontFamily.black,
+    fontSize: 14,
+    color: '#1A2752',
+  },
+  heroProgressCol: {
+    flex: 1,
+    gap: 6,
+  },
+  heroProgressLabel: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 12,
+    color: Colors.white,
+  },
+  heroProgressBarTrack: {
     height: 4,
-    backgroundColor: Colors.gray200,
-    marginHorizontal: Spacing.xl,
     borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.15)',
     overflow: 'hidden',
-    marginBottom: Spacing.lg,
   },
-  progressFill: {
+  heroProgressBarFill: {
     height: 4,
-    backgroundColor: Colors.navy,
     borderRadius: 2,
+    backgroundColor: Colors.white,
+  },
+  heroProgressPct: {
+    fontFamily: FontFamily.bold,
+    fontSize: 13,
+    color: Colors.white,
   },
 
-  // Scroll content
-  scrollContent: {
-    paddingHorizontal: Spacing.xl,
-    paddingBottom: Spacing.huge,
+  // ─── Form card ────────────────────────────────────────
+  formCard: {
+    backgroundColor: Colors.white,
+    borderRadius: 24,
+    padding: Spacing.xxl,
+    shadowColor: Colors.navy,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 16,
+    elevation: 2,
+  },
+  formCardLabel: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 10.5,
+    letterSpacing: 1,
+    color: Colors.navyLight,
+    marginBottom: Spacing.lg,
   },
 
   // Chip picker
   pickerLabel: {
-    ...Typography.caption,
+    fontFamily: FontFamily.semiBold,
+    fontSize: 11,
     color: Colors.gray600,
-    marginBottom: Spacing.xs,
+    marginBottom: Spacing.sm,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   chipRow: {
     flexDirection: 'row',
@@ -537,25 +754,26 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   chip: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: Radius.full,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: Colors.gray200,
     backgroundColor: Colors.white,
   },
   chipActive: {
     borderColor: Colors.navy,
-    backgroundColor: Colors.navySoft,
+    backgroundColor: Colors.navy,
   },
   chipText: {
-    ...Typography.bodySmall,
+    fontFamily: FontFamily.medium,
+    fontSize: 12.5,
     color: Colors.gray600,
   },
   chipTextActive: {
-    ...Typography.bodySmall,
-    fontFamily: FontFamily.semiBold,
-    color: Colors.navy,
+    fontFamily: FontFamily.bold,
+    fontSize: 12.5,
+    color: Colors.white,
   },
 
   // Upload button
@@ -564,11 +782,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.md,
     padding: Spacing.lg,
-    borderRadius: Radius.md,
+    borderRadius: 16,
     borderWidth: 1.5,
     borderColor: Colors.gray200,
     borderStyle: 'dashed',
-    backgroundColor: Colors.white,
+    backgroundColor: '#FAFAF7',
     marginBottom: Spacing.lg,
   },
   uploadButtonDone: {
@@ -616,27 +834,35 @@ const styles = StyleSheet.create({
 
   // Documents
   docsCount: {
-    ...Typography.bodyMedium,
+    fontFamily: FontFamily.bold,
+    fontSize: 13,
     color: Colors.navy,
-    textAlign: 'center',
-    marginBottom: Spacing.xl,
+    marginBottom: Spacing.lg,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    backgroundColor: Colors.navyTint,
+    borderRadius: Radius.full,
+    alignSelf: 'flex-start',
+    overflow: 'hidden',
   },
   docCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: Spacing.lg,
-    borderRadius: Radius.lg,
-    backgroundColor: Colors.white,
-    marginBottom: Spacing.md,
-    ...Shadows.sm,
+    padding: 14,
+    borderRadius: 18,
+    backgroundColor: '#FAFAF7',
+    borderWidth: 1,
+    borderColor: Colors.gray100,
+    marginBottom: Spacing.sm,
   },
   docCardDone: {
     backgroundColor: Colors.successSoft,
+    borderColor: 'rgba(16,185,129,0.25)',
   },
   docIconCircle: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 12,
     backgroundColor: Colors.navySoft,
     alignItems: 'center',
     justifyContent: 'center',
@@ -645,7 +871,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.success,
   },
   docLabel: {
-    ...Typography.bodyMedium,
+    fontFamily: FontFamily.semiBold,
+    fontSize: 13,
     color: Colors.black,
     flex: 1,
     marginLeft: Spacing.md,
@@ -657,6 +884,6 @@ const styles = StyleSheet.create({
 
   // Button area
   buttonArea: {
-    marginTop: Spacing.xl,
+    marginTop: Spacing.lg,
   },
 });

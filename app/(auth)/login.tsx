@@ -7,19 +7,23 @@ import {
   Platform,
   ScrollView,
   Alert,
-  ImageBackground,
+  TouchableOpacity,
+  StatusBar,
 } from 'react-native';
 import { router } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Haptics from 'expo-haptics';
 import { Colors } from '../../constants/Colors';
 import { Typography, FontFamily } from '../../constants/Typography';
-import { Spacing, Radius } from '../../constants/Spacing';
+import { Spacing, Radius, Shadows } from '../../constants/Spacing';
 import { useAuth } from '../../context/AuthContext';
 import { UserRole } from '../../constants/Types';
-import AppLogo from '../../components/AppLogo';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 
 export default function LoginScreen() {
+  const insets = useSafeAreaInsets();
   const { setRole } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -30,11 +34,11 @@ export default function LoginScreen() {
       Alert.alert('Erreur', 'Veuillez remplir tous les champs.');
       return;
     }
-    // Mock login — default to driver
     handleQuickAccess('driver');
   };
 
   const handleQuickAccess = async (role: UserRole) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setLoading(true);
     await setRole(role);
     setLoading(false);
@@ -49,48 +53,59 @@ export default function LoginScreen() {
   };
 
   const handleRegister = () => {
-    Alert.alert(
-      "S'inscrire",
-      'Choisissez votre type de compte :',
-      [
-        {
-          text: 'Chauffeur',
-          onPress: () => router.push('/(auth)/register-driver'),
-        },
-        {
-          text: 'Entreprise',
-          onPress: () => router.push('/(auth)/register-company'),
-        },
-        { text: 'Annuler', style: 'cancel' },
-      ],
-    );
+    router.replace('/(auth)/welcome');
+  };
+
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(auth)/welcome');
+    }
   };
 
   return (
-    <ImageBackground
-      source={require('../../assets/login.png')}
-      style={styles.background}
-      resizeMode="cover"
-    >
+    <View style={styles.screen}>
+      <StatusBar barStyle="dark-content" />
+
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingTop: insets.top + Spacing.md },
+          ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Logo */}
-          <View style={styles.logoSection}>
-            <AppLogo size="lg" variant="white" />
-            <Text style={styles.tagline}>
-              Publicité mobile pour véhicules
+          {/* Top bar */}
+          <View style={styles.topBar}>
+            <TouchableOpacity
+              onPress={handleBack}
+              style={styles.iconBtn}
+              activeOpacity={0.7}
+            >
+              <Feather name="arrow-left" size={20} color={Colors.navy} />
+            </TouchableOpacity>
+            <View style={styles.brandPill}>
+              <Feather name="truck" size={14} color={Colors.navy} />
+              <Text style={styles.brandPillText}>Publeader</Text>
+            </View>
+            <View style={styles.iconBtn} />
+          </View>
+
+          {/* Heading */}
+          <View style={styles.headingBlock}>
+            <Text style={styles.title}>Ravie de vous revoir</Text>
+            <Text style={styles.subtitle}>
+              Connectez-vous pour retrouver vos campagnes et vos gains.
             </Text>
           </View>
 
-          {/* Form card */}
-          <View style={styles.formCard}>
+          {/* Form */}
+          <View style={styles.formBlock}>
             <Input
               label="Email"
               placeholder="votre@email.com"
@@ -108,107 +123,170 @@ export default function LoginScreen() {
               secureTextEntry
             />
 
-            <Button
-              variant="primary"
-              size="lg"
-              loading={loading}
-              onPress={handleLogin}
-            >
-              Se connecter
-            </Button>
+            <TouchableOpacity style={styles.forgotRow} activeOpacity={0.7}>
+              <Text style={styles.forgotText}>Mot de passe oublié ?</Text>
+            </TouchableOpacity>
 
-            {/* Divider */}
-            <View style={styles.divider}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>ou accès rapide</Text>
-              <View style={styles.dividerLine} />
-            </View>
-
-            {/* Quick access buttons */}
-            <View style={styles.quickAccessRow}>
-              <View style={styles.quickAccessBtn}>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  icon="truck"
-                  onPress={() => handleQuickAccess('driver')}
-                >
-                  Chauffeur
-                </Button>
-              </View>
-              <View style={styles.quickAccessBtn}>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  icon="briefcase"
-                  onPress={() => handleQuickAccess('company')}
-                >
-                  Entreprise
-                </Button>
-              </View>
-              <View style={styles.quickAccessBtn}>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  icon="shield"
-                  onPress={() => handleQuickAccess('admin')}
-                >
-                  Admin
-                </Button>
-              </View>
+            <View style={styles.primaryBtnWrap}>
+              <Button
+                variant="primary"
+                size="lg"
+                loading={loading}
+                onPress={handleLogin}
+              >
+                Se connecter
+              </Button>
             </View>
           </View>
 
-          {/* Register link */}
-          <View style={styles.registerRow}>
-            <Text style={styles.registerText}>
-              Pas encore de compte ?{' '}
-            </Text>
-            <Text style={styles.registerLink} onPress={handleRegister}>
-              S'inscrire
-            </Text>
+          {/* Divider */}
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>accès démo</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          {/* Quick access */}
+          <View style={styles.quickRow}>
+            <QuickChip
+              icon="truck"
+              label="Chauffeur"
+              onPress={() => handleQuickAccess('driver')}
+            />
+            <QuickChip
+              icon="briefcase"
+              label="Entreprise"
+              onPress={() => handleQuickAccess('company')}
+            />
+            <QuickChip
+              icon="shield"
+              label="Admin"
+              onPress={() => handleQuickAccess('admin')}
+            />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </ImageBackground>
+
+      {/* Footer */}
+      <View
+        style={[
+          styles.footer,
+          { paddingBottom: Math.max(insets.bottom + Spacing.md, Spacing.xxl) },
+        ]}
+      >
+        <Text style={styles.footerText}>Pas encore de compte ? </Text>
+        <TouchableOpacity onPress={handleRegister} activeOpacity={0.7}>
+          <Text style={styles.footerLink}>S'inscrire</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+// ─── Quick access chip ───────────────────────────────────────
+function QuickChip({
+  icon,
+  label,
+  onPress,
+}: {
+  icon: keyof typeof Feather.glyphMap;
+  label: string;
+  onPress: () => void;
+}) {
+  return (
+    <TouchableOpacity
+      style={styles.quickChip}
+      onPress={onPress}
+      activeOpacity={0.75}
+    >
+      <Feather name={icon} size={16} color={Colors.navy} />
+      <Text style={styles.quickChipLabel}>{label}</Text>
+    </TouchableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
-  background: {
+  screen: {
     flex: 1,
+    backgroundColor: Colors.white,
   },
   flex: {
     flex: 1,
   },
   scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
     paddingHorizontal: Spacing.xxl,
-    paddingTop: 80,
     paddingBottom: Spacing.huge,
   },
-  // Logo section
-  logoSection: {
+
+  // Top bar
+  topBar: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Spacing.xxxl,
+    justifyContent: 'space-between',
+    marginBottom: Spacing.huge,
   },
-  tagline: {
-    ...Typography.bodySmall,
-    color: 'rgba(255,255,255,0.6)',
+  iconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.navyTint,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  brandPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 6,
+    borderRadius: Radius.full,
+    backgroundColor: Colors.navyTint,
+  },
+  brandPillText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 13,
+    color: Colors.navy,
+  },
+
+  // Heading
+  headingBlock: {
+    marginBottom: Spacing.huge,
+  },
+  title: {
+    fontFamily: FontFamily.black,
+    fontSize: 30,
+    lineHeight: 36,
+    color: Colors.navy,
+    marginBottom: Spacing.sm,
+  },
+  subtitle: {
+    ...Typography.bodyLarge,
+    color: Colors.gray500,
+  },
+
+  // Form
+  formBlock: {
+    marginBottom: Spacing.xl,
+  },
+  forgotRow: {
+    alignSelf: 'flex-end',
+    marginTop: -Spacing.sm,
+    marginBottom: Spacing.xl,
+  },
+  forgotText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 12,
+    color: Colors.navy,
+  },
+  primaryBtnWrap: {
     marginTop: Spacing.sm,
   },
-  // Form card
-  formCard: {
-    backgroundColor: Colors.white,
-    borderRadius: Radius.xxl,
-    padding: Spacing.xxl,
-  },
+
   // Divider
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: Spacing.xxl,
+    marginVertical: Spacing.xl,
   },
   dividerLine: {
     flex: 1,
@@ -219,28 +297,50 @@ const styles = StyleSheet.create({
     ...Typography.caption,
     color: Colors.gray400,
     marginHorizontal: Spacing.md,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
+
   // Quick access
-  quickAccessRow: {
+  quickRow: {
     flexDirection: 'row',
     gap: Spacing.sm,
   },
-  quickAccessBtn: {
+  quickChip: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.sm,
+    height: 44,
+    borderRadius: Radius.full,
+    backgroundColor: Colors.navyTint,
+    borderWidth: 1,
+    borderColor: Colors.navySoft,
   },
-  // Register
-  registerRow: {
+  quickChipLabel: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 12,
+    color: Colors.navy,
+  },
+
+  // Footer
+  footer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: Spacing.xxl,
+    alignItems: 'center',
+    paddingTop: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Colors.gray100,
+    backgroundColor: Colors.white,
   },
-  registerText: {
+  footerText: {
     ...Typography.body,
-    color: 'rgba(255,255,255,0.7)',
+    color: Colors.gray500,
   },
-  registerLink: {
-    ...Typography.bodyMedium,
-    color: Colors.white,
-    textDecorationLine: 'underline',
+  footerLink: {
+    fontFamily: FontFamily.bold,
+    fontSize: 13,
+    color: Colors.navy,
   },
 });

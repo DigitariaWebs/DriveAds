@@ -1,12 +1,20 @@
 import { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Switch, Alert, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Switch,
+  Alert,
+  StyleSheet,
+} from 'react-native';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/Colors';
 import { FontFamily } from '../../constants/Typography';
 import { Shadows } from '../../constants/Spacing';
 import { TAB_BAR_HEIGHT, TAB_BAR_BOTTOM } from '../../constants/TabBarStyle';
+import GradientHeader from '../../components/GradientHeader';
 
 // ─── Types ──────────────────────────────────────────────────
 type SettingItem = {
@@ -61,8 +69,6 @@ const SECTIONS: SettingSection[] = [
 
 // ─── Component ──────────────────────────────────────────────
 export default function SettingsScreen() {
-  const insets = useSafeAreaInsets();
-
   const [toggles, setToggles] = useState<Record<string, boolean>>({
     newCampaigns: true,
     payments: true,
@@ -75,24 +81,24 @@ export default function SettingsScreen() {
   };
 
   return (
-    <View style={[styles.screen, { paddingTop: insets.top }]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>
-          <Feather name="arrow-left" size={22} color={Colors.navy} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Paramètres</Text>
-        <View style={styles.headerBtnPlaceholder} />
-      </View>
-
+    <View style={styles.screen}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: TAB_BAR_HEIGHT + TAB_BAR_BOTTOM + 20 }}
+        contentContainerStyle={{
+          paddingBottom: TAB_BAR_HEIGHT + TAB_BAR_BOTTOM + 20,
+        }}
       >
+        <GradientHeader
+          title="Paramètres"
+          subtitle="Gérez votre compte et vos préférences"
+        />
+
         <View style={styles.content}>
           {SECTIONS.map((section) => (
             <View key={section.title} style={styles.section}>
-              <Text style={styles.sectionTitle}>{section.title}</Text>
+              <Text style={styles.sectionTitle}>
+                {section.title.toUpperCase()}
+              </Text>
               <View style={styles.sectionCard}>
                 {section.items.map((item, index) => (
                   <TouchableOpacity
@@ -101,7 +107,7 @@ export default function SettingsScreen() {
                       styles.settingRow,
                       index < section.items.length - 1 && styles.settingRowBorder,
                     ]}
-                    activeOpacity={item.type === 'toggle' ? 1 : 0.6}
+                    activeOpacity={item.type === 'toggle' ? 1 : 0.65}
                     onPress={() => {
                       if (item.type === 'link' && item.route) {
                         router.push(item.route as any);
@@ -111,26 +117,24 @@ export default function SettingsScreen() {
                           'Êtes-vous sûr ? Cette action est irréversible.',
                           [
                             { text: 'Annuler', style: 'cancel' },
-                            { text: 'Supprimer', style: 'destructive', onPress: () => {} },
-                          ]
+                            {
+                              text: 'Supprimer',
+                              style: 'destructive',
+                              onPress: () => {},
+                            },
+                          ],
                         );
                       } else if (item.type === 'toggle' && item.toggleKey) {
                         handleToggle(item.toggleKey);
                       }
                     }}
                   >
-                    <View
-                      style={[
-                        styles.settingIconWrap,
-                        { backgroundColor: item.danger ? Colors.dangerSoft : Colors.navySoft },
-                      ]}
-                    >
-                      <Feather
-                        name={item.icon}
-                        size={16}
-                        color={item.danger ? Colors.danger : Colors.navy}
-                      />
-                    </View>
+                    <Feather
+                      name={item.icon}
+                      size={18}
+                      color={item.danger ? Colors.danger : Colors.navy}
+                      style={styles.settingIcon}
+                    />
 
                     <Text
                       style={[
@@ -157,7 +161,7 @@ export default function SettingsScreen() {
                     {item.type === 'link' && (
                       <Feather
                         name="chevron-right"
-                        size={18}
+                        size={16}
                         color={item.danger ? Colors.danger : Colors.gray400}
                       />
                     )}
@@ -172,89 +176,63 @@ export default function SettingsScreen() {
   );
 }
 
-// ─── Styles ─────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.navyTint },
-
-  // Header
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  headerBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
-    backgroundColor: Colors.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Shadows.sm,
-  },
-  headerBtnPlaceholder: { width: 40 },
-  headerTitle: {
+  screen: {
     flex: 1,
-    textAlign: 'center',
-    fontFamily: FontFamily.bold,
-    fontSize: 16,
-    color: Colors.navy,
+    backgroundColor: '#F6F6F2',
   },
-
   content: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
+    paddingHorizontal: 20,
+    paddingTop: 20,
   },
 
-  // Section
   section: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   sectionTitle: {
-    fontFamily: FontFamily.bold,
-    fontSize: 14,
-    color: Colors.gray500,
-    marginBottom: 8,
+    fontFamily: FontFamily.semiBold,
+    fontSize: 10.5,
+    color: Colors.navyLight,
+    marginBottom: 10,
     marginLeft: 4,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 1,
   },
   sectionCard: {
     backgroundColor: Colors.white,
     borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Colors.gray100,
     ...Shadows.sm,
   },
 
-  // Setting row
   settingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 14,
-    gap: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    gap: 14,
   },
   settingRowBorder: {
     borderBottomWidth: 1,
     borderBottomColor: Colors.gray100,
   },
-  settingIconWrap: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
+  settingIcon: {
+    width: 22,
+    textAlign: 'center',
   },
   settingLabel: {
     flex: 1,
-    fontFamily: FontFamily.medium,
-    fontSize: 14,
+    fontFamily: FontFamily.semiBold,
+    fontSize: 13.5,
     color: Colors.black,
+    letterSpacing: -0.1,
   },
   settingLabelDanger: {
     color: Colors.danger,
   },
   settingValue: {
-    fontFamily: FontFamily.regular,
-    fontSize: 13,
+    fontFamily: FontFamily.medium,
+    fontSize: 12.5,
     color: Colors.gray500,
   },
 });

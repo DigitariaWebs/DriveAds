@@ -69,7 +69,7 @@ export default function PendingScreen() {
           <Feather name="mail" size={20} color={Colors.navy} />
           <Text style={styles.infoText}>
             En cas de question, contactez-nous à{' '}
-            <Text style={styles.infoEmail}>contact@driveads.com</Text>
+            <Text style={styles.infoEmail}>contact@publeader.com</Text>
           </Text>
         </View>
       </View>

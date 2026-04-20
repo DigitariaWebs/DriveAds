@@ -115,13 +115,13 @@ export default function OnboardingScreen() {
 
   const viewabilityConfig = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
 
-  const goToLogin = () => router.replace('/(auth)/login');
+  const goToWelcome = () => router.replace('/(auth)/welcome');
 
   const goNext = () => {
     if (currentIndex < slides.length - 1) {
       flatListRef.current?.scrollToIndex({ index: currentIndex + 1 });
     } else {
-      goToLogin();
+      goToWelcome();
     }
   };
 
@@ -189,7 +189,7 @@ export default function OnboardingScreen() {
         {/* Bottom row: Skip + dots */}
         <View style={styles.bottomRow}>
           {!isLast ? (
-            <TouchableOpacity onPress={goToLogin}>
+            <TouchableOpacity onPress={goToWelcome}>
               <Text style={styles.skipText}>Skip</Text>
             </TouchableOpacity>
           ) : (
@@ -224,8 +224,8 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   logoImg: {
-    width: 36,
-    height: 36,
+    width: 72,
+    height: 72,
   },
   slide: {
     width,

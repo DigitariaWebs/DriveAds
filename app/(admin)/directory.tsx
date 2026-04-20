@@ -14,6 +14,7 @@ import { Feather } from '@expo/vector-icons';
 import { Colors } from '../../constants/Colors';
 import { Typography, FontFamily } from '../../constants/Typography';
 import { Spacing, Radius, Shadows } from '../../constants/Spacing';
+import { TAB_BAR_HEIGHT, TAB_BAR_BOTTOM } from '../../constants/TabBarStyle';
 import { Driver, Company, ValidationStatus } from '../../constants/Types';
 import { useData } from '../../context/DataContext';
 import Screen from '../../components/ui/Screen';
@@ -513,7 +514,7 @@ const styles = StyleSheet.create({
   // List
   listContent: {
     paddingHorizontal: Spacing.xl,
-    paddingBottom: Spacing.huge,
+    paddingBottom: TAB_BAR_HEIGHT + TAB_BAR_BOTTOM + 20,
   },
   empty: {
     alignItems: 'center',

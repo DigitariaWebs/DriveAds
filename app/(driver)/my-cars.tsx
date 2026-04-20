@@ -13,12 +13,12 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/Colors';
 import { FontFamily } from '../../constants/Typography';
 import { Shadows } from '../../constants/Spacing';
 import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
+import GradientHeader from '../../components/GradientHeader';
 import { TAB_BAR_HEIGHT, TAB_BAR_BOTTOM } from '../../constants/TabBarStyle';
 
 const { width } = Dimensions.get('window');
@@ -71,7 +71,6 @@ const VEHICLE_TYPES = ['Berline', 'SUV', 'Utilitaire', 'Autre'];
 
 // ─── Component ──────────────────────────────────────────────
 export default function MyCarsScreen() {
-  const insets = useSafeAreaInsets();
   const [cars, setCars] = useState<Car[]>(INITIAL_CARS);
   const [selectedCar, setSelectedCar] = useState<Car>(cars[0]);
   const [selectedPhoto, setSelectedPhoto] = useState(0);
@@ -197,22 +196,18 @@ export default function MyCarsScreen() {
 
   // ─── Render ─────────────────────────────────────────────
   return (
-    <View style={[styles.screen, { paddingTop: insets.top }]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>
-          <Feather name="arrow-left" size={22} color={Colors.navy} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Mes véhicules</Text>
-        <TouchableOpacity onPress={() => setShowAdd(true)} style={styles.headerBtn}>
-          <Feather name="plus" size={22} color={Colors.navy} />
-        </TouchableOpacity>
-      </View>
-
+    <View style={styles.screen}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: TAB_BAR_HEIGHT + TAB_BAR_BOTTOM + 20 }}
       >
+        <GradientHeader
+          title="Mes véhicules"
+          subtitle={`${cars.length} véhicule${cars.length > 1 ? 's' : ''} enregistré${cars.length > 1 ? 's' : ''}`}
+          rightIcon="plus"
+          onRightPress={() => setShowAdd(true)}
+        />
+        <View style={styles.carsContentTop} />
         {/* Car selector tabs */}
         <ScrollView
           horizontal
@@ -463,31 +458,9 @@ function InfoRow({ icon, label, value }: { icon: keyof typeof Feather.glyphMap; 
 
 // ─── Styles ─────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.navyTint },
+  screen: { flex: 1, backgroundColor: '#F6F6F2' },
 
-  // Header
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  headerBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
-    backgroundColor: Colors.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Shadows.sm,
-  },
-  headerTitle: {
-    flex: 1,
-    textAlign: 'center',
-    fontFamily: FontFamily.bold,
-    fontSize: 16,
-    color: Colors.navy,
-  },
+  carsContentTop: { height: 16 },
 
   // Car selector
   carSelectorScroll: { flexGrow: 0 },

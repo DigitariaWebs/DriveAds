@@ -1,8 +1,14 @@
 import { Tabs } from 'expo-router';
 import { Colors } from '../../constants/Colors';
-import { tabBarScreenOptions } from '../../constants/TabBarStyle';
 import { useData } from '../../context/DataContext';
-import TabIcon from '../../components/TabIcon';
+import GlassTabBar from '../../components/GlassTabBar';
+
+const ADMIN_ICONS = {
+  dashboard: { icon: 'grid' as const, label: 'Accueil' },
+  validations: { icon: 'check-circle' as const, label: 'Validations' },
+  campaigns: { icon: 'volume-2' as const, label: 'Campagnes' },
+  directory: { icon: 'users' as const, label: 'Annuaire' },
+};
 
 export default function AdminLayout() {
   const { drivers, companies } = useData();
@@ -11,45 +17,25 @@ export default function AdminLayout() {
     companies.filter((c) => c.status === 'pending').length;
 
   return (
-    <Tabs screenOptions={tabBarScreenOptions}>
-      <Tabs.Screen
-        name="dashboard"
-        options={{
-          title: 'Accueil',
-          tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon="grid" />
-          ),
-        }}
-      />
+    <Tabs
+      screenOptions={{ headerShown: false }}
+      tabBar={(props) => <GlassTabBar {...props} iconMap={ADMIN_ICONS} />}
+    >
+      <Tabs.Screen name="dashboard" options={{ title: 'Accueil' }} />
       <Tabs.Screen
         name="validations"
         options={{
           title: 'Validations',
-          tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon="check-circle" />
-          ),
           tabBarBadge: pendingCount > 0 ? pendingCount : undefined,
-          tabBarBadgeStyle: { backgroundColor: Colors.danger, fontSize: 9, fontWeight: '700' },
+          tabBarBadgeStyle: {
+            backgroundColor: Colors.danger,
+            fontSize: 9,
+            fontWeight: '700',
+          },
         }}
       />
-      <Tabs.Screen
-        name="campaigns"
-        options={{
-          title: 'Campagnes',
-          tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon="volume-2" />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="directory"
-        options={{
-          title: 'Annuaire',
-          tabBarIcon: ({ focused }) => (
-            <TabIcon focused={focused} icon="users" />
-          ),
-        }}
-      />
+      <Tabs.Screen name="campaigns" options={{ title: 'Campagnes' }} />
+      <Tabs.Screen name="directory" options={{ title: 'Annuaire' }} />
     </Tabs>
   );
 }

@@ -34,7 +34,7 @@ export default function AppLogo({ size = 'md', variant = 'default' }: Props) {
           { fontSize: s.fontSize, color },
         ]}
       >
-        DriveAds
+        Publeader
       </Text>
     </View>
   );

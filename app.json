@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "DriveAds",
+    "name": "Publeader",
     "slug": "driveads",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -32,7 +32,8 @@
       "bundler": "metro"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      "expo-video"
     ],
     "extra": {
       "router": {},

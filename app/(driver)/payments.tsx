@@ -1,12 +1,12 @@
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '../../constants/Colors';
 import { FontFamily } from '../../constants/Typography';
 import { Shadows } from '../../constants/Spacing';
 import { TAB_BAR_HEIGHT, TAB_BAR_BOTTOM } from '../../constants/TabBarStyle';
+import GradientHeader from '../../components/GradientHeader';
 
 const { width } = Dimensions.get('window');
 
@@ -28,25 +28,17 @@ const TRANSACTIONS: Transaction[] = [
 ];
 
 export default function PaymentsScreen() {
-  const insets = useSafeAreaInsets();
-
   return (
-    <View style={[styles.screen, { paddingTop: insets.top }]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>
-          <Feather name="arrow-left" size={22} color={Colors.navy} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Paiements</Text>
-        <TouchableOpacity style={styles.headerBtn}>
-          <Feather name="more-horizontal" size={22} color={Colors.navy} />
-        </TouchableOpacity>
-      </View>
-
+    <View style={styles.screen}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: TAB_BAR_HEIGHT + TAB_BAR_BOTTOM + 20 }}
       >
+        <GradientHeader
+          title="Paiements"
+          subtitle="Votre solde et vos transactions"
+        />
+
         {/* ─── Stacked wallet cards ──────────────────────── */}
         <View style={styles.walletArea}>
           {/* Background peek cards */}
@@ -81,7 +73,7 @@ export default function PaymentsScreen() {
                 <Text style={styles.pendingAmount}>280 €</Text>
               </View>
               <View style={styles.cardDots}>
-                <Text style={styles.cardDotsText}>DriveAds</Text>
+                <Text style={styles.cardDotsText}>Publeader</Text>
                 <Text style={styles.cardNumber}>•••• 4821</Text>
               </View>
             </View>
@@ -89,47 +81,49 @@ export default function PaymentsScreen() {
         </View>
 
         {/* ─── Quick actions ─────────────────────────────── */}
-        <View style={styles.actionsRow}>
-          <TouchableOpacity style={styles.actionItem} activeOpacity={0.7} onPress={() => router.push('/(driver)/withdraw')}>
-            <View style={[styles.actionIcon, { backgroundColor: Colors.navySoft }]}>
-              <Feather name="download" size={18} color={Colors.navy} />
-            </View>
+        <View style={styles.actionsCard}>
+          <TouchableOpacity
+            style={styles.actionItem}
+            activeOpacity={0.7}
+            onPress={() => router.push('/(driver)/withdraw')}
+          >
+            <Feather name="download" size={20} color={Colors.navy} />
             <Text style={styles.actionLabel}>Retirer</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.actionItem} activeOpacity={0.7} onPress={() => router.push('/(driver)/statement')}>
-            <View style={[styles.actionIcon, { backgroundColor: Colors.infoSoft }]}>
-              <Feather name="file-text" size={18} color={Colors.info} />
-            </View>
+          <View style={styles.actionDivider} />
+          <TouchableOpacity
+            style={styles.actionItem}
+            activeOpacity={0.7}
+            onPress={() => router.push('/(driver)/statement')}
+          >
+            <Feather name="file-text" size={20} color={Colors.navy} />
             <Text style={styles.actionLabel}>Relevé</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.actionItem} activeOpacity={0.7} onPress={() => router.push('/(driver)/stats')}>
-            <View style={[styles.actionIcon, { backgroundColor: Colors.successSoft }]}>
-              <Feather name="bar-chart-2" size={18} color={Colors.success} />
-            </View>
+          <View style={styles.actionDivider} />
+          <TouchableOpacity
+            style={styles.actionItem}
+            activeOpacity={0.7}
+            onPress={() => router.push('/(driver)/stats')}
+          >
+            <Feather name="bar-chart-2" size={20} color={Colors.navy} />
             <Text style={styles.actionLabel}>Statistiques</Text>
           </TouchableOpacity>
         </View>
 
-        {/* ─── Stats cards ───────────────────────────────── */}
+        {/* ─── Stats cards — flat monochrome ─────────────── */}
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
-            <View style={styles.statIconWrap}>
-              <Feather name="trending-up" size={16} color={Colors.success} />
-            </View>
+            <Feather name="trending-up" size={16} color={Colors.gray500} />
             <Text style={styles.statValue}>4 320 €</Text>
             <Text style={styles.statLabel}>Total gagné</Text>
           </View>
           <View style={styles.statCard}>
-            <View style={styles.statIconWrap}>
-              <Feather name="award" size={16} color={Colors.navy} />
-            </View>
+            <Feather name="award" size={16} color={Colors.gray500} />
             <Text style={styles.statValue}>12</Text>
             <Text style={styles.statLabel}>Campagnes</Text>
           </View>
           <View style={styles.statCard}>
-            <View style={styles.statIconWrap}>
-              <Feather name="clock" size={16} color={Colors.warning} />
-            </View>
+            <Feather name="clock" size={16} color={Colors.gray500} />
             <Text style={styles.statValue}>280 €</Text>
             <Text style={styles.statLabel}>En attente</Text>
           </View>
@@ -154,7 +148,7 @@ export default function PaymentsScreen() {
                   onPress={() => router.push({ pathname: '/(driver)/transaction-detail', params: { txId: tx.id } })}
                   activeOpacity={0.7}
                 >
-                  <View style={[styles.txIcon, isWithdraw ? styles.txIconWithdraw : styles.txIconIncome]}>
+                  <View style={styles.txIcon}>
                     <Feather
                       name={isWithdraw ? 'arrow-up-right' : 'arrow-down-left'}
                       size={16}
@@ -186,43 +180,19 @@ export default function PaymentsScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.navyTint },
-
-  // Header
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  headerBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
-    backgroundColor: Colors.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Shadows.sm,
-  },
-  headerTitle: {
-    flex: 1,
-    textAlign: 'center',
-    fontFamily: FontFamily.bold,
-    fontSize: 16,
-    color: Colors.navy,
-  },
+  screen: { flex: 1, backgroundColor: '#F6F6F2' },
 
   // ─── Wallet stacked cards ─────────────────────────────────
   walletArea: {
-    paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingHorizontal: 20,
+    paddingTop: 20,
     marginBottom: 24,
     height: 240,
   },
   peekCard: {
     position: 'absolute',
-    left: 16,
-    right: 16,
+    left: 20,
+    right: 20,
     height: 180,
     borderRadius: 20,
     paddingHorizontal: 20,
@@ -256,8 +226,8 @@ const styles = StyleSheet.create({
   mainCard: {
     position: 'absolute',
     top: 40,
-    left: 16,
-    right: 16,
+    left: 20,
+    right: 20,
     borderRadius: 20,
     padding: 20,
     zIndex: 3,
@@ -319,70 +289,69 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  // ─── Quick actions ────────────────────────────────────────
-  actionsRow: {
+  // ─── Quick actions — flat monochrome ──────────────────────
+  actionsCard: {
     flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 20,
-    paddingHorizontal: 16,
-    marginBottom: 20,
+    backgroundColor: Colors.white,
+    borderRadius: 20,
+    paddingVertical: 14,
+    marginHorizontal: 20,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: Colors.gray100,
+    ...Shadows.sm,
   },
   actionItem: {
+    flex: 1,
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
+    paddingVertical: 6,
   },
-  actionIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
+  actionDivider: {
+    width: 1,
+    backgroundColor: Colors.gray100,
+    marginVertical: 4,
   },
   actionLabel: {
-    fontFamily: FontFamily.medium,
+    fontFamily: FontFamily.semiBold,
     fontSize: 11,
-    color: Colors.gray600,
+    color: Colors.gray700,
   },
 
-  // ─── Stats ────────────────────────────────────────────────
+  // ─── Stats — flat monochrome ──────────────────────────────
   statsRow: {
     flexDirection: 'row',
     gap: 10,
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     marginBottom: 24,
   },
   statCard: {
     flex: 1,
     backgroundColor: Colors.white,
-    borderRadius: 16,
-    padding: 12,
-    alignItems: 'center',
-    gap: 4,
+    borderRadius: 18,
+    padding: 14,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: Colors.gray100,
     ...Shadows.sm,
   },
-  statIconWrap: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    backgroundColor: Colors.navyTint,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 2,
-  },
   statValue: {
-    fontFamily: FontFamily.bold,
+    fontFamily: FontFamily.black,
     fontSize: 15,
-    color: Colors.black,
+    color: Colors.navy,
+    letterSpacing: -0.2,
   },
   statLabel: {
-    fontFamily: FontFamily.regular,
+    fontFamily: FontFamily.medium,
     fontSize: 10,
     color: Colors.gray500,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
   },
 
   // ─── Transactions ─────────────────────────────────────────
   txSection: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
   },
   txHeader: {
     flexDirection: 'row',
@@ -391,18 +360,21 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   txSectionTitle: {
-    fontFamily: FontFamily.bold,
+    fontFamily: FontFamily.black,
     fontSize: 16,
-    color: Colors.black,
+    color: Colors.navy,
+    letterSpacing: -0.2,
   },
   txSeeAll: {
-    fontFamily: FontFamily.medium,
+    fontFamily: FontFamily.bold,
     fontSize: 12,
     color: Colors.navy,
   },
   txList: {
     backgroundColor: Colors.white,
     borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Colors.gray100,
     ...Shadows.sm,
   },
   txItem: {
@@ -416,14 +388,13 @@ const styles = StyleSheet.create({
     borderBottomColor: Colors.gray100,
   },
   txIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: Colors.gray50,
   },
-  txIconIncome: { backgroundColor: Colors.successSoft },
-  txIconWithdraw: { backgroundColor: Colors.dangerSoft },
   txInfo: { flex: 1 },
   txBrand: {
     fontFamily: FontFamily.semiBold,

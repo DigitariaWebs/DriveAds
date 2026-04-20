@@ -1,12 +1,18 @@
 import { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Linking, StyleSheet } from 'react-native';
-import { router } from 'expo-router';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Linking,
+  StyleSheet,
+} from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/Colors';
 import { FontFamily } from '../../constants/Typography';
 import { Shadows } from '../../constants/Spacing';
 import { TAB_BAR_HEIGHT, TAB_BAR_BOTTOM } from '../../constants/TabBarStyle';
+import GradientHeader from '../../components/GradientHeader';
 
 // ─── Types ──────────────────────────────────────────────────
 type FaqItem = {
@@ -18,9 +24,9 @@ type FaqItem = {
 const FAQ_ITEMS: FaqItem[] = [
   {
     id: '1',
-    question: 'Comment fonctionne DriveAds ?',
+    question: 'Comment fonctionne Publeader ?',
     answer:
-      "DriveAds vous met en relation avec des marques qui souhaitent afficher leur publicité sur votre véhicule. Vous choisissez les campagnes qui vous intéressent, un professionnel pose le covering sur votre véhicule, et vous êtes rémunéré en fonction de vos kilomètres parcourus.",
+      "Publeader vous met en relation avec des marques qui souhaitent afficher leur publicité sur votre véhicule. Vous choisissez les campagnes qui vous intéressent, un professionnel pose le covering sur votre véhicule, et vous êtes rémunéré en fonction de vos kilomètres parcourus.",
   },
   {
     id: '2',
@@ -38,13 +44,12 @@ const FAQ_ITEMS: FaqItem[] = [
     id: '4',
     question: 'Comment contacter le support ?',
     answer:
-      "Vous pouvez nous contacter par email à contact@driveads.com ou par téléphone au +33 1 00 00 00 00. Notre équipe est disponible du lundi au vendredi de 9h à 18h.",
+      "Vous pouvez nous contacter par email à contact@publeader.com ou par téléphone au +33 1 00 00 00 00. Notre équipe est disponible du lundi au vendredi de 9h à 18h.",
   },
 ];
 
 // ─── Component ──────────────────────────────────────────────
 export default function SupportScreen() {
-  const insets = useSafeAreaInsets();
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const toggleFaq = (id: string) => {
@@ -52,38 +57,33 @@ export default function SupportScreen() {
   };
 
   return (
-    <View style={[styles.screen, { paddingTop: insets.top }]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>
-          <Feather name="arrow-left" size={22} color={Colors.navy} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Aide & Support</Text>
-        <View style={styles.headerBtnPlaceholder} />
-      </View>
-
+    <View style={styles.screen}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: TAB_BAR_HEIGHT + TAB_BAR_BOTTOM + 20 }}
+        contentContainerStyle={{
+          paddingBottom: TAB_BAR_HEIGHT + TAB_BAR_BOTTOM + 20,
+        }}
       >
+        <GradientHeader
+          title="Aide & Support"
+          subtitle="Nous sommes là pour vous aider"
+        />
+
         <View style={styles.content}>
           {/* Contact card */}
+          <Text style={styles.sectionLabel}>NOUS CONTACTER</Text>
           <View style={styles.contactCard}>
-            <Text style={styles.contactTitle}>Nous contacter</Text>
-
             <TouchableOpacity
               style={styles.contactRow}
               activeOpacity={0.7}
-              onPress={() => Linking.openURL('mailto:contact@driveads.com')}
+              onPress={() => Linking.openURL('mailto:contact@publeader.com')}
             >
-              <View style={[styles.contactIconWrap, { backgroundColor: Colors.infoSoft }]}>
-                <Feather name="mail" size={18} color={Colors.info} />
-              </View>
+              <Feather name="mail" size={18} color={Colors.navy} style={styles.contactIcon} />
               <View style={styles.contactInfo}>
                 <Text style={styles.contactLabel}>Email</Text>
-                <Text style={styles.contactValue}>contact@driveads.com</Text>
+                <Text style={styles.contactValue}>contact@publeader.com</Text>
               </View>
-              <Feather name="external-link" size={16} color={Colors.gray400} />
+              <Feather name="external-link" size={14} color={Colors.gray400} />
             </TouchableOpacity>
 
             <View style={styles.contactDivider} />
@@ -93,19 +93,17 @@ export default function SupportScreen() {
               activeOpacity={0.7}
               onPress={() => Linking.openURL('tel:+33100000000')}
             >
-              <View style={[styles.contactIconWrap, { backgroundColor: Colors.successSoft }]}>
-                <Feather name="phone" size={18} color={Colors.success} />
-              </View>
+              <Feather name="phone" size={18} color={Colors.navy} style={styles.contactIcon} />
               <View style={styles.contactInfo}>
                 <Text style={styles.contactLabel}>Téléphone</Text>
                 <Text style={styles.contactValue}>+33 1 00 00 00 00</Text>
               </View>
-              <Feather name="external-link" size={16} color={Colors.gray400} />
+              <Feather name="external-link" size={14} color={Colors.gray400} />
             </TouchableOpacity>
           </View>
 
-          {/* FAQ section */}
-          <Text style={styles.sectionTitle}>Questions fréquentes</Text>
+          {/* FAQ */}
+          <Text style={styles.sectionLabel}>QUESTIONS FRÉQUENTES</Text>
           <View style={styles.faqList}>
             {FAQ_ITEMS.map((item, index) => {
               const isExpanded = expandedId === item.id;
@@ -122,15 +120,17 @@ export default function SupportScreen() {
                     <Text style={styles.faqQuestion}>{item.question}</Text>
                     <Feather
                       name={isExpanded ? 'chevron-up' : 'chevron-down'}
-                      size={18}
-                      color={Colors.gray400}
+                      size={16}
+                      color={isExpanded ? Colors.navy : Colors.gray400}
                     />
                   </TouchableOpacity>
                   {isExpanded && (
-                    <View style={[
-                      styles.faqAnswer,
-                      index < FAQ_ITEMS.length - 1 && styles.faqItemBorder,
-                    ]}>
+                    <View
+                      style={[
+                        styles.faqAnswer,
+                        index < FAQ_ITEMS.length - 1 && styles.faqItemBorder,
+                      ]}
+                    >
                       <Text style={styles.faqAnswerText}>{item.answer}</Text>
                     </View>
                   )}
@@ -140,10 +140,12 @@ export default function SupportScreen() {
           </View>
 
           {/* Knowledge base link */}
-          <TouchableOpacity style={styles.kbLink} activeOpacity={0.7}>
+          <TouchableOpacity style={styles.kbLink} activeOpacity={0.85}>
             <Feather name="book-open" size={18} color={Colors.navy} />
-            <Text style={styles.kbLinkText}>Consulter la base de connaissances</Text>
-            <Feather name="arrow-right" size={16} color={Colors.navy} />
+            <Text style={styles.kbLinkText}>
+              Consulter la base de connaissances
+            </Text>
+            <Feather name="arrow-up-right" size={16} color={Colors.navy} />
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -151,65 +153,45 @@ export default function SupportScreen() {
   );
 }
 
-// ─── Styles ─────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.navyTint },
-
-  // Header
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  headerBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
-    backgroundColor: Colors.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Shadows.sm,
-  },
-  headerBtnPlaceholder: { width: 40 },
-  headerTitle: {
+  screen: {
     flex: 1,
-    textAlign: 'center',
-    fontFamily: FontFamily.bold,
-    fontSize: 16,
-    color: Colors.navy,
+    backgroundColor: '#F6F6F2',
+  },
+  content: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
   },
 
-  content: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
+  sectionLabel: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 10.5,
+    color: Colors.navyLight,
+    marginBottom: 10,
+    marginLeft: 4,
+    letterSpacing: 1,
+    marginTop: 4,
   },
 
   // Contact card
   contactCard: {
     backgroundColor: Colors.white,
     borderRadius: 20,
-    padding: 20,
+    padding: 16,
     marginBottom: 24,
+    borderWidth: 1,
+    borderColor: Colors.gray100,
     ...Shadows.sm,
-  },
-  contactTitle: {
-    fontFamily: FontFamily.bold,
-    fontSize: 16,
-    color: Colors.black,
-    marginBottom: 16,
   },
   contactRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 14,
+    paddingVertical: 8,
   },
-  contactIconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
+  contactIcon: {
+    width: 22,
+    textAlign: 'center',
   },
   contactInfo: {
     flex: 1,
@@ -218,30 +200,29 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.medium,
     fontSize: 11,
     color: Colors.gray500,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
   },
   contactValue: {
-    fontFamily: FontFamily.semiBold,
+    fontFamily: FontFamily.bold,
     fontSize: 14,
     color: Colors.black,
-    marginTop: 1,
+    marginTop: 2,
+    letterSpacing: -0.1,
   },
   contactDivider: {
     height: 1,
     backgroundColor: Colors.gray100,
-    marginVertical: 14,
+    marginVertical: 6,
   },
 
   // FAQ
-  sectionTitle: {
-    fontFamily: FontFamily.bold,
-    fontSize: 16,
-    color: Colors.black,
-    marginBottom: 12,
-  },
   faqList: {
     backgroundColor: Colors.white,
     borderRadius: 20,
-    marginBottom: 20,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: Colors.gray100,
     ...Shadows.sm,
   },
   faqItem: {
@@ -256,35 +237,40 @@ const styles = StyleSheet.create({
   },
   faqQuestion: {
     flex: 1,
-    fontFamily: FontFamily.semiBold,
-    fontSize: 13,
+    fontFamily: FontFamily.bold,
+    fontSize: 13.5,
     color: Colors.black,
+    letterSpacing: -0.1,
   },
   faqAnswer: {
     paddingHorizontal: 16,
     paddingBottom: 16,
+    paddingTop: 2,
   },
   faqAnswerText: {
     fontFamily: FontFamily.regular,
-    fontSize: 13,
+    fontSize: 12.5,
     color: Colors.gray600,
     lineHeight: 20,
   },
 
-  // Knowledge base link
+  // Knowledge base
   kbLink: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.navySoft,
-    borderRadius: 20,
+    backgroundColor: Colors.navyTint,
+    borderRadius: 18,
     padding: 16,
-    gap: 8,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: Colors.navySoft,
   },
   kbLinkText: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: 14,
+    fontFamily: FontFamily.bold,
+    fontSize: 13,
     color: Colors.navy,
     flex: 1,
+    letterSpacing: -0.1,
   },
 });

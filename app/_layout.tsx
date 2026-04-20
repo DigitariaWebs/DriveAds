@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import {
   useFonts,
   Poppins_400Regular,
@@ -36,16 +37,18 @@ export default function RootLayout() {
   }
 
   return (
-    <AuthProvider>
-      <DataProvider>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="index" />
-          <Stack.Screen name="(auth)" />
-          <Stack.Screen name="(driver)" />
-          <Stack.Screen name="(company)" />
-          <Stack.Screen name="(admin)" />
-        </Stack>
-      </DataProvider>
-    </AuthProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <AuthProvider>
+        <DataProvider>
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="index" />
+            <Stack.Screen name="(auth)" />
+            <Stack.Screen name="(driver)" />
+            <Stack.Screen name="(company)" />
+            <Stack.Screen name="(admin)" />
+          </Stack>
+        </DataProvider>
+      </AuthProvider>
+    </GestureHandlerRootView>
   );
 }
