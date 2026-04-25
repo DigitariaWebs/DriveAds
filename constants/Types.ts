@@ -1,4 +1,4 @@
-export type UserRole = 'driver' | 'company' | 'admin';
+export type UserRole = 'driver' | 'advertiser' | 'partner';
 export type CampaignStatus = 'available' | 'active' | 'completed' | 'upcoming';
 export type ValidationStatus = 'pending' | 'validated' | 'rejected';
 export type TrackingMode = 'gps' | 'manual';
@@ -42,6 +42,20 @@ export type Company = {
   employees: string;
   campaignsCount: number;
   gallery: string[];
+};
+
+export type Partner = {
+  id: string;
+  businessName: string;
+  managerName: string;
+  email: string;
+  phone: string;
+  address: string;
+  city: string;
+  openingHours: string;
+  terminalStatus: 'online' | 'maintenance' | 'offline';
+  monthlySprayRevenue: number;
+  monthlyAdsRevenue: number;
 };
 
 export type Campaign = {

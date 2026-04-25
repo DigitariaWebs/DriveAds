@@ -1,11 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  Modal,
-  Pressable,
   Dimensions,
   StatusBar,
   Platform,
@@ -17,7 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { Colors } from '../../constants/Colors';
-import { FontFamily, Typography } from '../../constants/Typography';
+import { FontFamily } from '../../constants/Typography';
 import { Spacing, Radius } from '../../constants/Spacing';
 
 const { width, height } = Dimensions.get('window');
@@ -75,23 +73,17 @@ const BURST_RINGS: BurstRing[] = [
 // ─── Screen ─────────────────────────────────────────────────
 export default function WelcomeScreen() {
   const insets = useSafeAreaInsets();
-  const [pickerOpen, setPickerOpen] = useState(false);
 
   const noise = useMemo(() => generateNoise(900, width, height), []);
 
   const handleCreateAccount = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setPickerOpen(true);
+    router.push('/(auth)/register-driver');
   };
 
   const handleLogin = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push('/(auth)/login');
-  };
-
-  const goToRole = (path: '/(auth)/register-driver' | '/(auth)/register-company') => {
-    setPickerOpen(false);
-    setTimeout(() => router.push(path), 120);
   };
 
   return (
@@ -205,7 +197,7 @@ export default function WelcomeScreen() {
             onPress={handleCreateAccount}
             activeOpacity={0.88}
           >
-            <Text style={styles.primaryBtnText}>Créer un compte</Text>
+            <Text style={styles.primaryBtnText}>S'inscrire comme chauffeur</Text>
             <Feather
               name="arrow-right"
               size={18}
@@ -213,6 +205,10 @@ export default function WelcomeScreen() {
               style={styles.primaryBtnIcon}
             />
           </TouchableOpacity>
+
+          <Text style={styles.webSignupNote}>
+            Annonceurs et partenaires : création de compte sur le dashboard web.
+          </Text>
 
           <TouchableOpacity
             style={styles.ghostBtn}
@@ -232,112 +228,6 @@ export default function WelcomeScreen() {
           </Text>
         </View>
       </View>
-
-      {/* Role picker */}
-      <Modal
-        visible={pickerOpen}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setPickerOpen(false)}
-        statusBarTranslucent
-      >
-        <Pressable
-          style={styles.modalBackdrop}
-          onPress={() => setPickerOpen(false)}
-        >
-          <Pressable
-            style={[
-              styles.modalSheet,
-              { paddingBottom: Math.max(insets.bottom + Spacing.lg, Spacing.huge) },
-            ]}
-          >
-            <View style={styles.modalHandle} />
-
-            <TouchableOpacity
-              style={styles.modalClose}
-              onPress={() => setPickerOpen(false)}
-              activeOpacity={0.7}
-              hitSlop={10}
-            >
-              <Feather name="x" size={18} color={Colors.gray500} />
-            </TouchableOpacity>
-
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalEyebrow}>Rejoindre Publeader</Text>
-              <Text style={styles.modalTitle}>Créez votre compte</Text>
-              <Text style={styles.modalSubtitle}>
-                Choisissez le profil qui vous correspond.
-              </Text>
-            </View>
-
-            <TouchableOpacity
-              style={styles.roleCard}
-              activeOpacity={0.9}
-              onPress={() => goToRole('/(auth)/register-driver')}
-            >
-              <LinearGradient
-                colors={[Colors.navy, Colors.navyLight]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.roleIcon}
-              >
-                <Feather name="truck" size={22} color={Colors.white} />
-              </LinearGradient>
-
-              <View style={styles.roleTextCol}>
-                <Text style={styles.roleTitle}>Chauffeur</Text>
-                <Text style={styles.roleCopy}>
-                  Je monétise mon véhicule personnel.
-                </Text>
-              </View>
-
-              <View style={styles.roleArrow}>
-                <Feather name="arrow-up-right" size={16} color={Colors.navy} />
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.roleCard}
-              activeOpacity={0.9}
-              onPress={() => goToRole('/(auth)/register-company')}
-            >
-              <LinearGradient
-                colors={[Colors.navy, Colors.navyLight]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.roleIcon}
-              >
-                <Feather name="briefcase" size={22} color={Colors.white} />
-              </LinearGradient>
-
-              <View style={styles.roleTextCol}>
-                <Text style={styles.roleTitle}>Entreprise</Text>
-                <Text style={styles.roleCopy}>
-                  Je lance une campagne publicitaire.
-                </Text>
-              </View>
-
-              <View style={styles.roleArrow}>
-                <Feather name="arrow-up-right" size={16} color={Colors.navy} />
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.modalLoginRow}
-              onPress={() => {
-                setPickerOpen(false);
-                setTimeout(() => router.push('/(auth)/login'), 120);
-              }}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.modalLoginText}>
-                Déjà membre ?{' '}
-                <Text style={styles.modalLoginLink}>Se connecter</Text>
-              </Text>
-            </TouchableOpacity>
-          </Pressable>
-        </Pressable>
-      </Modal>
     </View>
   );
 }
@@ -454,6 +344,14 @@ const styles = StyleSheet.create({
   primaryBtnIcon: {
     marginLeft: 8,
   },
+  webSignupNote: {
+    fontFamily: FontFamily.medium,
+    fontSize: 11,
+    lineHeight: 16,
+    color: 'rgba(255,255,255,0.48)',
+    textAlign: 'center',
+    marginTop: -2,
+  },
   ghostBtn: {
     height: 54,
     borderRadius: Radius.full,
@@ -486,121 +384,4 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.semiBold,
   },
 
-  // Modal
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(6,9,22,0.7)',
-    justifyContent: 'flex-end',
-  },
-  modalSheet: {
-    backgroundColor: '#FAFAF7',
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    paddingHorizontal: Spacing.xxl,
-    paddingTop: Spacing.lg,
-  },
-  modalHandle: {
-    alignSelf: 'center',
-    width: 44,
-    height: 5,
-    borderRadius: 3,
-    backgroundColor: Colors.gray200,
-    marginBottom: Spacing.lg,
-  },
-  modalClose: {
-    position: 'absolute',
-    top: Spacing.lg + 8,
-    right: Spacing.xxl,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: Colors.gray100,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalHeader: {
-    marginBottom: Spacing.xl,
-    paddingRight: 40,
-  },
-  modalEyebrow: {
-    fontFamily: FontFamily.semiBold,
-    fontSize: 11,
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-    color: Colors.navyLight,
-    marginBottom: 6,
-  },
-  modalTitle: {
-    fontFamily: FontFamily.black,
-    fontSize: 26,
-    lineHeight: 32,
-    color: Colors.navy,
-    letterSpacing: -0.4,
-    marginBottom: 6,
-  },
-  modalSubtitle: {
-    ...Typography.bodyLarge,
-    color: Colors.gray500,
-  },
-  roleCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.lg,
-    padding: Spacing.lg,
-    borderRadius: 20,
-    backgroundColor: Colors.white,
-    borderWidth: 1,
-    borderColor: Colors.gray100,
-    marginBottom: Spacing.md,
-    shadowColor: Colors.navy,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    elevation: 2,
-  },
-  roleIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  roleTextCol: {
-    flex: 1,
-  },
-  roleTitle: {
-    fontFamily: FontFamily.bold,
-    fontSize: 16,
-    color: Colors.navy,
-    marginBottom: 2,
-    letterSpacing: -0.1,
-  },
-  roleCopy: {
-    fontFamily: FontFamily.regular,
-    fontSize: 12.5,
-    lineHeight: 17,
-    color: Colors.gray500,
-  },
-  roleArrow: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: Colors.navyTint,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalLoginRow: {
-    alignItems: 'center',
-    paddingTop: Spacing.md,
-    paddingBottom: Spacing.xs,
-  },
-  modalLoginText: {
-    fontFamily: FontFamily.regular,
-    fontSize: 13,
-    color: Colors.gray500,
-  },
-  modalLoginLink: {
-    fontFamily: FontFamily.bold,
-    color: Colors.navy,
-  },
 });

@@ -14,14 +14,14 @@ import { TAB_BAR_HEIGHT, TAB_BAR_BOTTOM } from '../../constants/TabBarStyle';
 
 const { width } = Dimensions.get('window');
 
-export default function CompanyHomeScreen() {
+export default function AdvertiserHomeScreen() {
   const insets = useSafeAreaInsets();
   const { currentCompany } = useAuth();
   const { campaigns, unreadCount } = useData();
 
   const company = currentCompany;
   const companyId = company?.id ?? 'c1';
-  const companyName = company?.companyName ?? 'Entreprise';
+  const companyName = company?.companyName ?? 'Annonceur';
 
   const companyCampaigns = campaigns.filter((c) => c.companyId === companyId);
   const activeCampaigns = companyCampaigns.filter((c) => c.status === 'active');
@@ -55,7 +55,7 @@ export default function CompanyHomeScreen() {
             </View>
             <TouchableOpacity
               style={styles.bellBtn}
-              onPress={() => router.push('/(company)/notifications')}
+              onPress={() => router.push('/(advertiser)/notifications')}
             >
               <Feather name="bell" size={22} color={Colors.white} />
               {unreadCount > 0 && (
@@ -103,18 +103,18 @@ export default function CompanyHomeScreen() {
           <View style={styles.quickStatsRow}>
             <TouchableOpacity
               style={styles.quickStatCard}
-              onPress={() => router.push('/(company)/request')}
+              onPress={() => router.push('/(advertiser)/campaigns')}
               activeOpacity={0.7}
             >
               <View style={[styles.quickStatIcon, { backgroundColor: Colors.navySoft }]}>
-                <Feather name="plus-circle" size={18} color={Colors.navy} />
+                <Feather name="map-pin" size={18} color={Colors.navy} />
               </View>
-              <Text style={styles.quickStatLabel}>Créer</Text>
-              <Text style={styles.quickStatSub}>campagne</Text>
+              <Text style={styles.quickStatLabel}>Bornes</Text>
+              <Text style={styles.quickStatSub}>actives</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.quickStatCard}
-              onPress={() => router.push('/(company)/my-campaigns')}
+              onPress={() => router.push('/(advertiser)/campaigns')}
               activeOpacity={0.7}
             >
               <View style={[styles.quickStatIcon, { backgroundColor: Colors.successSoft }]}>
@@ -125,14 +125,14 @@ export default function CompanyHomeScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.quickStatCard}
-              onPress={() => router.push('/(company)/profile')}
+              onPress={() => router.push('/(advertiser)/stats')}
               activeOpacity={0.7}
             >
               <View style={[styles.quickStatIcon, { backgroundColor: Colors.infoSoft }]}>
-                <Feather name="briefcase" size={18} color={Colors.info} />
+                <Feather name="bar-chart-2" size={18} color={Colors.info} />
               </View>
-              <Text style={styles.quickStatLabel}>Profil</Text>
-              <Text style={styles.quickStatSub}>entreprise</Text>
+              <Text style={styles.quickStatLabel}>Stats</Text>
+              <Text style={styles.quickStatSub}>lecture</Text>
             </TouchableOpacity>
           </View>
 
@@ -141,7 +141,7 @@ export default function CompanyHomeScreen() {
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Campagnes en cours</Text>
-                <TouchableOpacity onPress={() => router.push('/(company)/my-campaigns')}>
+                <TouchableOpacity onPress={() => router.push('/(advertiser)/campaigns')}>
                   <Text style={styles.seeMore}>Tout voir</Text>
                 </TouchableOpacity>
               </View>
@@ -204,7 +204,7 @@ export default function CompanyHomeScreen() {
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Historique récent</Text>
-                <TouchableOpacity onPress={() => router.push('/(company)/my-campaigns')}>
+                <TouchableOpacity onPress={() => router.push('/(advertiser)/campaigns')}>
                   <Text style={styles.seeMore}>Tout voir</Text>
                 </TouchableOpacity>
               </View>

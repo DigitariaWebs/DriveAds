@@ -26,7 +26,7 @@ const MENU_ITEMS: MenuItem[] = [
   { icon: 'log-out', label: 'Se déconnecter', danger: true },
 ];
 
-export default function CompanyProfileScreen() {
+export default function AdvertiserProfileScreen() {
   const insets = useSafeAreaInsets();
   const { currentCompany, logout } = useAuth();
   const { campaigns } = useData();
@@ -62,7 +62,7 @@ export default function CompanyProfileScreen() {
             name={company?.companyName ?? 'E'}
             size={80}
           />
-          <Text style={styles.name}>{company?.companyName ?? 'Entreprise'}</Text>
+          <Text style={styles.name}>{company?.companyName ?? 'Annonceur'}</Text>
           <View style={styles.badgeRow}>
             {company?.sector && <Badge variant="navy" label={company.sector} />}
             {company?.city && <Badge variant="neutral" label={company.city} icon="map-pin" />}

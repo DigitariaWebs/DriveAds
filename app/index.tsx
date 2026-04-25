@@ -41,10 +41,10 @@ export default function Index() {
       router.replace('/(auth)/onboarding');
     } else if (role === 'driver') {
       router.replace('/(driver)/home');
-    } else if (role === 'company') {
-      router.replace('/(company)/home');
-    } else if (role === 'admin') {
-      router.replace('/(admin)/dashboard');
+    } else if (role === 'advertiser') {
+      router.replace('/(advertiser)/home');
+    } else if (role === 'partner') {
+      router.replace('/(partner)/home');
     }
   }, [role, isLoading, videoEnded]);
 

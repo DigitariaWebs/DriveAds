@@ -1,5 +1,5 @@
 import NotificationsScreen from '../../components/NotificationsScreen';
 
-export default function CompanyNotificationsScreen() {
+export default function AdvertiserNotificationsScreen() {
   return <NotificationsScreen />;
 }

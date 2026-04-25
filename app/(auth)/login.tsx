@@ -45,15 +45,15 @@ export default function LoginScreen() {
 
     if (role === 'driver') {
       router.replace('/(driver)/home');
-    } else if (role === 'company') {
-      router.replace('/(company)/home');
+    } else if (role === 'advertiser') {
+      router.replace('/(advertiser)/home');
     } else {
-      router.replace('/(admin)/dashboard');
+      router.replace('/(partner)/home');
     }
   };
 
   const handleRegister = () => {
-    router.replace('/(auth)/welcome');
+    router.push('/(auth)/register-driver');
   };
 
   const handleBack = () => {
@@ -142,28 +142,35 @@ export default function LoginScreen() {
           {/* Divider */}
           <View style={styles.divider}>
             <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>accès démo</Text>
+            <Text style={styles.dividerText}>accès rapide</Text>
             <View style={styles.dividerLine} />
           </View>
 
           {/* Quick access */}
-          <View style={styles.quickRow}>
-            <QuickChip
+          <View style={styles.quickGrid}>
+            <QuickRoleCard
               icon="truck"
               label="Chauffeur"
+              description="App complète"
               onPress={() => handleQuickAccess('driver')}
             />
-            <QuickChip
+            <QuickRoleCard
               icon="briefcase"
-              label="Entreprise"
-              onPress={() => handleQuickAccess('company')}
+              label="Annonceur"
+              description="Lecture seule"
+              onPress={() => handleQuickAccess('advertiser')}
             />
-            <QuickChip
-              icon="shield"
-              label="Admin"
-              onPress={() => handleQuickAccess('admin')}
+            <QuickRoleCard
+              icon="map-pin"
+              label="Partenaire"
+              description="Lecture seule"
+              onPress={() => handleQuickAccess('partner')}
             />
           </View>
+
+          <Text style={styles.webSignupNote}>
+            La création de compte annonceur et partenaire se fait sur le dashboard web.
+          </Text>
         </ScrollView>
       </KeyboardAvoidingView>
 
@@ -174,7 +181,7 @@ export default function LoginScreen() {
           { paddingBottom: Math.max(insets.bottom + Spacing.md, Spacing.xxl) },
         ]}
       >
-        <Text style={styles.footerText}>Pas encore de compte ? </Text>
+        <Text style={styles.footerText}>Pas encore chauffeur ? </Text>
         <TouchableOpacity onPress={handleRegister} activeOpacity={0.7}>
           <Text style={styles.footerLink}>S'inscrire</Text>
         </TouchableOpacity>
@@ -183,24 +190,33 @@ export default function LoginScreen() {
   );
 }
 
-// ─── Quick access chip ───────────────────────────────────────
-function QuickChip({
+// ─── Quick access card ───────────────────────────────────────
+function QuickRoleCard({
   icon,
   label,
+  description,
   onPress,
 }: {
   icon: keyof typeof Feather.glyphMap;
   label: string;
+  description: string;
   onPress: () => void;
 }) {
   return (
     <TouchableOpacity
-      style={styles.quickChip}
+      style={styles.quickCard}
       onPress={onPress}
       activeOpacity={0.75}
     >
-      <Feather name={icon} size={16} color={Colors.navy} />
-      <Text style={styles.quickChipLabel}>{label}</Text>
+      <View style={styles.quickIcon}>
+        <Feather name={icon} size={17} color={Colors.navy} />
+      </View>
+      <Text style={styles.quickTitle} numberOfLines={1}>
+        {label}
+      </Text>
+      <Text style={styles.quickDescription} numberOfLines={1}>
+        {description}
+      </Text>
     </TouchableOpacity>
   );
 }
@@ -302,26 +318,48 @@ const styles = StyleSheet.create({
   },
 
   // Quick access
-  quickRow: {
+  quickGrid: {
     flexDirection: 'row',
     gap: Spacing.sm,
   },
-  quickChip: {
+  quickCard: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.sm,
-    height: 44,
-    borderRadius: Radius.full,
+    minHeight: 92,
+    borderRadius: 18,
     backgroundColor: Colors.navyTint,
     borderWidth: 1,
     borderColor: Colors.navySoft,
+    padding: 12,
+    justifyContent: 'space-between',
   },
-  quickChipLabel: {
+  quickIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 11,
+    backgroundColor: Colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickTitle: {
     fontFamily: FontFamily.semiBold,
     fontSize: 12,
     color: Colors.navy,
+    marginTop: 8,
+  },
+  quickDescription: {
+    fontFamily: FontFamily.medium,
+    fontSize: 10,
+    color: Colors.gray500,
+    marginTop: 2,
+  },
+  webSignupNote: {
+    fontFamily: FontFamily.medium,
+    fontSize: 11,
+    lineHeight: 16,
+    color: Colors.gray500,
+    textAlign: 'center',
+    marginTop: Spacing.md,
+    paddingHorizontal: Spacing.sm,
   },
 
   // Footer

@@ -44,8 +44,8 @@ export default function RootLayout() {
             <Stack.Screen name="index" />
             <Stack.Screen name="(auth)" />
             <Stack.Screen name="(driver)" />
-            <Stack.Screen name="(company)" />
-            <Stack.Screen name="(admin)" />
+            <Stack.Screen name="(advertiser)" />
+            <Stack.Screen name="(partner)" />
           </Stack>
         </DataProvider>
       </AuthProvider>

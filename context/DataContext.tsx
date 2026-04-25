@@ -1,38 +1,29 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import {
   Driver,
-  Company,
   Campaign,
   NotificationItem,
   TrackingEvent,
   DriverStats,
-  AdminStats,
   ValidationStatus,
 } from '../constants/Types';
 import {
   mockDrivers,
-  mockCompanies,
   mockCampaigns,
   mockNotifications,
   mockTrackingEvents,
   mockDriverStats,
-  mockAdminStats,
 } from '../mocks/data';
 
 type DataContextType = {
   drivers: Driver[];
-  companies: Company[];
   campaigns: Campaign[];
   notifications: NotificationItem[];
   trackingEvents: TrackingEvent[];
   driverStats: DriverStats;
-  adminStats: AdminStats;
   // Driver actions
   addDriver: (driver: Driver) => void;
   updateDriverStatus: (id: string, status: ValidationStatus) => void;
-  // Company actions
-  addCompany: (company: Company) => void;
-  updateCompanyStatus: (id: string, status: ValidationStatus) => void;
   // Campaign actions
   addCampaign: (campaign: Campaign) => void;
   assignDriverToCampaign: (campaignId: string, driverIds: string[]) => void;
@@ -49,13 +40,11 @@ const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export function DataProvider({ children }: { children: ReactNode }) {
   const [drivers, setDrivers] = useState<Driver[]>(mockDrivers);
-  const [companies, setCompanies] = useState<Company[]>(mockCompanies);
   const [campaigns, setCampaigns] = useState<Campaign[]>(mockCampaigns);
   const [notifications, setNotifications] =
     useState<NotificationItem[]>(mockNotifications);
   const [trackingEvents] = useState<TrackingEvent[]>(mockTrackingEvents);
   const [driverStats] = useState<DriverStats>(mockDriverStats);
-  const [adminStats] = useState<AdminStats>(mockAdminStats);
 
   const addDriver = (driver: Driver) => {
     setDrivers((prev) => [...prev, driver]);
@@ -64,16 +53,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const updateDriverStatus = (id: string, status: ValidationStatus) => {
     setDrivers((prev) =>
       prev.map((d) => (d.id === id ? { ...d, status } : d))
-    );
-  };
-
-  const addCompany = (company: Company) => {
-    setCompanies((prev) => [...prev, company]);
-  };
-
-  const updateCompanyStatus = (id: string, status: ValidationStatus) => {
-    setCompanies((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, status } : c))
     );
   };
 
@@ -134,16 +113,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
     <DataContext.Provider
       value={{
         drivers,
-        companies,
         campaigns,
         notifications,
         trackingEvents,
         driverStats,
-        adminStats,
         addDriver,
         updateDriverStatus,
-        addCompany,
-        updateCompanyStatus,
         addCampaign,
         assignDriverToCampaign,
         acceptCampaign,

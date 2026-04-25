@@ -37,7 +37,7 @@ const statusBadge: Record<string, { variant: 'success' | 'warning' | 'info' | 'n
   upcoming: { variant: 'warning', label: 'À venir' },
 };
 
-export default function CompanyMyCampaignsScreen() {
+export default function AdvertiserCampaignsScreen() {
   const insets = useSafeAreaInsets();
   const { currentCompany } = useAuth();
   const { campaigns, drivers } = useData();
