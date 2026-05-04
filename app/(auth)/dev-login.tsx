@@ -29,7 +29,7 @@ type DemoUser = {
 const DEMO_USERS: DemoUser[] = [
   {
     role: 'driver',
-    email: 'driver@driveads.local',
+    email: 'driver@publeader.local',
     password: 'driver123!',
     label: 'Chauffeur',
     description: 'Marie Dupont · Paris · Peugeot 308',
@@ -38,7 +38,7 @@ const DEMO_USERS: DemoUser[] = [
   },
   {
     role: 'advertiser',
-    email: 'advertiser@driveads.local',
+    email: 'advertiser@publeader.local',
     password: 'advert123!',
     label: 'Annonceur',
     description: 'Acme Corp · lecture seule',
@@ -47,7 +47,7 @@ const DEMO_USERS: DemoUser[] = [
   },
   {
     role: 'partner',
-    email: 'partner@driveads.local',
+    email: 'partner@publeader.local',
     password: 'partner123!',
     label: 'Partenaire',
     description: 'Club Neon · lecture seule',
@@ -56,7 +56,7 @@ const DEMO_USERS: DemoUser[] = [
   },
   {
     role: 'admin',
-    email: 'admin@driveads.local',
+    email: 'admin@publeader.local',
     password: 'admin123!',
     label: 'Admin',
     description: 'Accès dashboard web',

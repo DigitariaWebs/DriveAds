@@ -14,8 +14,8 @@ export const authClient = createAuthClient({
   baseURL,
   plugins: [
     expoClient({
-      scheme: "driveads",
-      storagePrefix: "driveads",
+      scheme: "publeader",
+      storagePrefix: "publeader",
       storage: SecureStore,
     }),
     adminClient(),

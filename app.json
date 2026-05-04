@@ -1,13 +1,13 @@
 {
   "expo": {
     "name": "Publeader",
-    "slug": "driveads",
+    "slug": "publeader",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    "scheme": "driveads",
+    "scheme": "publeader",
     "splash": {
       "image": "./assets/logo.png",
       "resizeMode": "contain",
@@ -15,7 +15,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.achrefdev.driveads",
+      "bundleIdentifier": "com.achrefdev.publeader",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
