@@ -140,6 +140,17 @@ export default function LoginScreen() {
           <Text style={styles.webSignupNote}>
             Annonceur ou partenaire ? Création de compte sur le dashboard web.
           </Text>
+
+          {__DEV__ && (
+            <TouchableOpacity
+              style={styles.devLink}
+              onPress={() => router.push('/(auth)/dev-login')}
+              activeOpacity={0.7}
+            >
+              <Feather name="zap" size={12} color={Colors.navy} />
+              <Text style={styles.devLinkText}>Fast Login (dev)</Text>
+            </TouchableOpacity>
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
 
@@ -298,6 +309,23 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: Spacing.md,
     paddingHorizontal: Spacing.sm,
+  },
+  devLink: {
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: Spacing.lg,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: Radius.full,
+    backgroundColor: Colors.navyTint,
+  },
+  devLinkText: {
+    fontFamily: FontFamily.bold,
+    fontSize: 11,
+    color: Colors.navy,
+    letterSpacing: 0.5,
   },
 
   // Footer
