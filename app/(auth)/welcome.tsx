@@ -81,6 +81,16 @@ export default function WelcomeScreen() {
     router.push('/(auth)/register-driver');
   };
 
+  const handleAdvertiser = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push('/(auth)/register-company');
+  };
+
+  const handlePartner = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    router.push('/(auth)/register-partner');
+  };
+
   const handleLogin = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push('/(auth)/login');
@@ -206,9 +216,24 @@ export default function WelcomeScreen() {
             />
           </TouchableOpacity>
 
-          <Text style={styles.webSignupNote}>
-            Annonceurs et partenaires : création de compte sur le dashboard web.
-          </Text>
+          <View style={styles.altRoleRow}>
+            <TouchableOpacity
+              style={styles.altRoleBtn}
+              onPress={handleAdvertiser}
+              activeOpacity={0.75}
+            >
+              <Feather name="briefcase" size={14} color="rgba(255,255,255,0.85)" />
+              <Text style={styles.altRoleText}>Annonceur</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.altRoleBtn}
+              onPress={handlePartner}
+              activeOpacity={0.75}
+            >
+              <Feather name="map-pin" size={14} color="rgba(255,255,255,0.85)" />
+              <Text style={styles.altRoleText}>Partenaire</Text>
+            </TouchableOpacity>
+          </View>
 
           <TouchableOpacity
             style={styles.ghostBtn}
@@ -351,6 +376,27 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.48)',
     textAlign: 'center',
     marginTop: -2,
+  },
+  altRoleRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  altRoleBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    height: 44,
+    borderRadius: Radius.full,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+  },
+  altRoleText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.85)',
   },
   ghostBtn: {
     height: 54,

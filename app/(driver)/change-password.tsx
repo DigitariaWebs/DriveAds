@@ -16,6 +16,7 @@ import { FontFamily } from '../../constants/Typography';
 import { Shadows } from '../../constants/Spacing';
 import { TAB_BAR_HEIGHT, TAB_BAR_BOTTOM } from '../../constants/TabBarStyle';
 import Button from '../../components/ui/Button';
+import { authClient } from '../../lib/api';
 
 type Requirement = {
   label: string;
@@ -50,7 +51,9 @@ export default function ChangePasswordScreen() {
 
   const strengthWidth = `${(metCount / requirements.length) * 100}%` as const;
 
-  const handleUpdate = () => {
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleUpdate = async () => {
     if (!currentPassword) {
       Alert.alert('Erreur', 'Veuillez entrer votre mot de passe actuel.');
       return;
@@ -63,9 +66,24 @@ export default function ChangePasswordScreen() {
       Alert.alert('Erreur', 'Le mot de passe ne respecte pas toutes les exigences.');
       return;
     }
-    Alert.alert('Succès', 'Votre mot de passe a été mis à jour.', [
-      { text: 'OK', onPress: () => router.back() },
-    ]);
+    setSubmitting(true);
+    try {
+      const res = await authClient.changePassword({
+        currentPassword,
+        newPassword,
+        revokeOtherSessions: true,
+      });
+      if (res.error) {
+        throw new Error(res.error.message ?? 'Mise à jour échouée');
+      }
+      Alert.alert('Succès', 'Votre mot de passe a été mis à jour.', [
+        { text: 'OK', onPress: () => router.back() },
+      ]);
+    } catch (e: any) {
+      Alert.alert('Erreur', e?.message ?? 'Mise à jour échouée.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -198,7 +216,7 @@ export default function ChangePasswordScreen() {
 
           {/* Update button */}
           <View style={styles.buttonWrap}>
-            <Button size="lg" onPress={handleUpdate}>
+            <Button size="lg" onPress={handleUpdate} loading={submitting}>
               Mettre à jour
             </Button>
           </View>

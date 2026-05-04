@@ -8,7 +8,7 @@ import { Colors } from '../constants/Colors';
 const { width } = Dimensions.get('window');
 
 export default function Index() {
-  const { role, isLoading } = useAuth();
+  const { role, isLoading, status } = useAuth();
   const [videoEnded, setVideoEnded] = useState(false);
 
   const player = useVideoPlayer(require('../assets/publeader.mp4'), (p) => {
@@ -39,14 +39,20 @@ export default function Index() {
 
     if (!role) {
       router.replace('/(auth)/onboarding');
-    } else if (role === 'driver') {
+      return;
+    }
+    if (status === 'pending') {
+      router.replace('/(auth)/pending');
+      return;
+    }
+    if (role === 'driver') {
       router.replace('/(driver)/home');
     } else if (role === 'advertiser') {
       router.replace('/(advertiser)/home');
     } else if (role === 'partner') {
       router.replace('/(partner)/home');
     }
-  }, [role, isLoading, videoEnded]);
+  }, [role, status, isLoading, videoEnded]);
 
   return (
     <View style={styles.container}>

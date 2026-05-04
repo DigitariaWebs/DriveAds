@@ -6,9 +6,24 @@ import { Colors } from '../../constants/Colors';
 import { Typography, FontFamily } from '../../constants/Typography';
 import { Spacing, Radius, Shadows } from '../../constants/Spacing';
 import Button from '../../components/ui/Button';
+import { useAuth } from '../../context/AuthContext';
 
 export default function PendingScreen() {
   const rotation = useRef(new Animated.Value(0)).current;
+  const { status, role, refresh, logout } = useAuth();
+
+  useEffect(() => {
+    if (status === 'validated' && role) {
+      router.replace('/');
+    }
+  }, [status, role]);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      refresh();
+    }, 15000);
+    return () => clearInterval(id);
+  }, [refresh]);
 
   useEffect(() => {
     Animated.loop(
@@ -79,10 +94,13 @@ export default function PendingScreen() {
         <Button
           variant="outline"
           size="lg"
-          icon="home"
-          onPress={() => router.replace('/(auth)/welcome')}
+          icon="log-out"
+          onPress={async () => {
+            await logout();
+            router.replace('/(auth)/welcome');
+          }}
         >
-          Retour à l'accueil
+          Se déconnecter
         </Button>
       </View>
     </View>

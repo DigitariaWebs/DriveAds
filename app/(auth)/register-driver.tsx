@@ -17,8 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/Colors';
 import { Typography, FontFamily } from '../../constants/Typography';
 import { Spacing, Radius, Shadows } from '../../constants/Spacing';
-import { Driver } from '../../constants/Types';
-import { useData } from '../../context/DataContext';
+import { apiFetch } from '../../lib/fetcher';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 
@@ -65,8 +64,8 @@ const DOCUMENTS = [
 // ─── Component ──────────────────────────────────────────────
 export default function RegisterDriverScreen() {
   const insets = useSafeAreaInsets();
-  const { addDriver } = useData();
   const [step, setStep] = useState(1);
+  const [submitting, setSubmitting] = useState(false);
 
   // Step 1 — Identité
   const [firstName, setFirstName] = useState('');
@@ -196,28 +195,34 @@ export default function RegisterDriverScreen() {
     }
   };
 
-  const handleSubmit = () => {
-    const newDriver: Driver = {
-      id: `d_${Date.now()}`,
-      firstName: firstName.trim(),
-      lastName: lastName.trim(),
-      email: email.trim(),
-      phone: phone.trim(),
-      city: city as Driver['city'],
-      vehicleModel: vehicleModel.trim(),
-      vehicleYear: vehicleYear.trim(),
-      licensePlate: licensePlate.trim().toUpperCase(),
-      vehicleType: vehicleType as Driver['vehicleType'],
-      status: 'pending',
-      joinedAt: new Date().toISOString().split('T')[0],
-      campaignsDone: 0,
-      rating: 0,
-      totalKm: 0,
-      totalEarnings: 0,
-      documentsUploaded: true,
-    };
-    addDriver(newDriver);
-    router.replace('/(auth)/pending');
+  const handleSubmit = async () => {
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      await apiFetch('/api/register/driver', {
+        method: 'POST',
+        body: JSON.stringify({
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          email: email.trim().toLowerCase(),
+          phone: phone.trim(),
+          password,
+          city,
+          vehicleModel: vehicleModel.trim(),
+          vehicleYear: vehicleYear.trim(),
+          licensePlate: licensePlate.trim().toUpperCase(),
+          vehicleType,
+        }),
+      });
+      router.replace({
+        pathname: '/(auth)/verify-email',
+        params: { email: email.trim().toLowerCase() },
+      });
+    } catch (e: any) {
+      Alert.alert('Inscription échouée', e?.message ?? 'Une erreur est survenue.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   // ─── Picker helper ────────────────────────────────────────
@@ -445,7 +450,13 @@ export default function RegisterDriverScreen() {
 
       {allDocsUploaded && (
         <View style={styles.buttonArea}>
-          <Button variant="primary" size="lg" onPress={handleSubmit} icon="check-circle">
+          <Button
+            variant="primary"
+            size="lg"
+            onPress={handleSubmit}
+            icon="check-circle"
+            loading={submitting}
+          >
             S'inscrire
           </Button>
         </View>

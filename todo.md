@@ -1,26 +1,42 @@
 # Backend Todo
 
+## Product Scope
+
+- Mobile app primary audience: drivers (full feature set, read + write).
+- Partners + advertisers on mobile: **read-only** companion (dashboard, stats, notifications, profile). All write/management work on web.
+- Web dashboard: full admin + advertiser portal + partner portal (write access for partners + advertisers lives here).
+- Enforce read-only mode for partner + advertiser roles on mobile API surface (block mutations server-side).
+- Hide / disable mutation UI on mobile partner + advertiser screens (forms, create buttons, edit actions).
+
 ## Web Backend (serves Web + Mobile)
 
-### Auth & Identity (dual-client: web cookies + mobile Bearer tokens)
-- [ ] User accounts with roles: admin, advertiser, driver, partner, team_member
-- [ ] Driver self-registration (4-step: identity, vehicle, security, documents)
-- [ ] Company self-registration
-- [ ] Partner registration
-- [ ] Login / logout
-- [ ] Token refresh
-- [ ] Password reset via email
-- [ ] Change password
-- [ ] Current-user profile lookup (hydrate role + linked entity on app launch)
-- [ ] Pending state for newly-registered drivers/companies (await admin validation)
-- [ ] Role-based access control across all features
-- [ ] Session revocation
+### Auth & Identity (Better Auth + MongoDB, dual-client: web cookies + mobile SecureStore via @better-auth/expo)
+- [x] User accounts with roles: admin, advertiser, driver, partner, team_member
+- [x] Driver self-registration (4-step: identity, vehicle, security, documents)
+- [x] Company self-registration (creates Better Auth organization)
+- [x] Partner registration
+- [x] Login / logout
+- [x] Token refresh (Better Auth session expiry + updateAge)
+- [x] Password reset via email OTP (6-digit, 10min)
+- [x] Change password
+- [x] Current-user profile lookup (`/api/me` hydrates role + linked entity)
+- [x] Pending state for newly-registered drivers/companies/partners (await admin validation)
+- [x] Email verification via OTP on signup
+- [x] Admin seed script
+- [ ] Role-based access control middleware on protected routes (server-side guards per endpoint)
+- [ ] Admin force-logout / ban / unban UI (admin plugin available, no UI yet)
+- [ ] Team member invite acceptance UI (organization plugin wired, invite-accept screen pending)
+- [ ] SMTP credentials in prod (currently dev console fallback)
 
 ### Drivers
 - [ ] Driver profile (identity, contact, city)
 - [ ] Vehicle management (one or multiple cars per driver: make, model, year, plate, type, inspection)
 - [ ] Document upload + validation workflow (license, registration, insurance, photos)
 - [ ] Driver status lifecycle (pending → validated/rejected)
+- [ ] Driver KYC flow (ID verification, selfie liveness, address proof) — deferred
+- [ ] KYC status field (unverified | pending | verified | rejected) — deferred
+- [ ] Block driver withdrawals until KYC verified — deferred
+- [ ] KYC re-verification triggers (expired ID, address change) — deferred
 - [ ] Driver stats aggregates (monthly earnings, total earnings, campaigns done, rating, total km, growth)
 - [ ] Driver campaign history
 - [ ] Driver payment history + statement export
@@ -30,6 +46,8 @@
 ### Companies / Advertisers
 - [ ] Company profile (legal info, sector, contact, brand color, logo)
 - [ ] Company status lifecycle (pending → validated/rejected)
+- [ ] Company KYC (KBIS, beneficial owner, payment-method legal check) — deferred
+- [ ] Company KYC status field — deferred
 - [ ] Team management (invite by email, roles: admin/editor/viewer, last seen, pending invites)
 - [ ] Asset library (visuals, videos, logos, briefs with usage tracking)
 - [ ] Billing profile + payment methods (Stripe)
@@ -53,6 +71,13 @@
 - [ ] Impressions timeline
 - [ ] Per-company campaign filtering for advertiser portal
 
+### Partners
+- [ ] Partner profile (business info, manager, address)
+- [ ] Partner status lifecycle (pending → validated/rejected)
+- [ ] Partner KYC (business registration, banking details for payouts) — deferred
+- [ ] Partner KYC status field — deferred
+- [ ] Block partner payouts until KYC verified — deferred
+
 ### Bornes / Terminals (Partner Hardware)
 - [ ] Terminal registry with map coords + venue type (bar/hotel/nightclub/etc.)
 - [ ] Terminal status (online/maintenance/offline) + uptime tracking
@@ -75,6 +100,7 @@
 - [ ] Per-submission detail with documents
 - [ ] Approve / reject / request more info actions
 - [ ] Notify submitter on decision
+- [ ] KYC review queue (driver + company + partner) — deferred
 
 ### Finances (Admin)
 - [ ] Invoices (create, edit, send, mark paid, PDF, statuses: payée/envoyée/en retard/brouillon)
@@ -131,14 +157,15 @@
 - [ ] Refactor `context/AuthContext.tsx` to real auth + hydrate from `/me`
 
 ### Auth flows
-- [ ] Real login (email + password)
-- [ ] Real register-driver 4-step submission
-- [ ] Real register-advertiser flow
-- [ ] Real register-partner flow
-- [ ] Pending screen polls user status until validated
-- [ ] Forgot/reset password screens
-- [ ] Change password wired
-- [ ] Logout clears tokens
+- [x] Real login (email + password)
+- [x] Real register-driver 4-step submission
+- [x] Real register-advertiser flow
+- [x] Real register-partner flow
+- [x] Pending screen polls user status until validated (15s interval)
+- [x] Forgot/reset password screens (OTP)
+- [x] Email verification screen (OTP)
+- [x] Change password wired
+- [x] Logout clears session
 
 ### Driver
 - [ ] Home (driver, stats, active + available campaigns, unread count)
@@ -158,22 +185,22 @@
 - [ ] GPS background tracking task (location pings → tracking events)
 - [ ] Manual check-in mode for non-GPS campaigns
 
-### Advertiser
-- [ ] Home dashboard (own KPIs)
-- [ ] Campaigns list (own only) with filter
-- [ ] Create campaign (mobile 3-step wizard)
-- [ ] Driver assignment modal
-- [ ] Stats / performance
-- [ ] Profile + company edit
+### Advertiser (mobile = read-only companion)
+- [ ] Home dashboard (own KPIs) — read-only
+- [ ] Campaigns list (own only) with filter — read-only
+- [ ] Stats / performance — read-only
+- [ ] Profile view (edit on web only)
 - [ ] Notifications
+- [ ] Hide/remove create-campaign + assign-driver UI on mobile (web-only)
 
-### Partner
-- [ ] Home (terminal status, stock summary, live ads, notifs)
-- [ ] Stock screen (alerts, order action)
-- [ ] Ads screen (live, scheduled, report issue)
-- [ ] Revenue screen (history, transactions, statement export)
+### Partner (mobile = read-only companion)
+- [ ] Home (terminal status, stock summary, live ads, notifs) — read-only
+- [ ] Stock screen view (no order action — web only)
+- [ ] Ads screen view (no report action — web only)
+- [ ] Revenue screen (history, transactions) — read-only, no statement export
 - [ ] Notifications with filters (all/unread/stock/ops)
-- [ ] Profile + terminal preferences (notification toggles, maintenance allowed)
+- [ ] Profile view (edit on web only)
+- [ ] Hide/remove all mutation buttons on partner mobile screens
 
 ### Cross-cutting mobile UX
 - [ ] Loading skeletons on data screens

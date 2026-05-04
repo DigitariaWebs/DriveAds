@@ -18,38 +18,36 @@ import { Colors } from '../../constants/Colors';
 import { Typography, FontFamily } from '../../constants/Typography';
 import { Spacing, Radius, Shadows } from '../../constants/Spacing';
 import { useAuth } from '../../context/AuthContext';
-import { UserRole } from '../../constants/Types';
 import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
-  const { setRole } = useAuth();
+  const { signInEmail, refresh } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
       Alert.alert('Erreur', 'Veuillez remplir tous les champs.');
       return;
     }
-    handleQuickAccess('driver');
-  };
-
-  const handleQuickAccess = async (role: UserRole) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setLoading(true);
-    await setRole(role);
-    setLoading(false);
-
-    if (role === 'driver') {
-      router.replace('/(driver)/home');
-    } else if (role === 'advertiser') {
-      router.replace('/(advertiser)/home');
-    } else {
-      router.replace('/(partner)/home');
+    try {
+      await signInEmail(email.trim(), password);
+      await refresh();
+      router.replace('/');
+    } catch (e: any) {
+      Alert.alert('Connexion échouée', e?.message ?? 'Vérifiez vos identifiants.');
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const handleForgot = () => {
+    router.push('/(auth)/forgot-password');
   };
 
   const handleRegister = () => {
@@ -123,7 +121,7 @@ export default function LoginScreen() {
               secureTextEntry
             />
 
-            <TouchableOpacity style={styles.forgotRow} activeOpacity={0.7}>
+            <TouchableOpacity style={styles.forgotRow} activeOpacity={0.7} onPress={handleForgot}>
               <Text style={styles.forgotText}>Mot de passe oublié ?</Text>
             </TouchableOpacity>
 
@@ -139,37 +137,8 @@ export default function LoginScreen() {
             </View>
           </View>
 
-          {/* Divider */}
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>accès rapide</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          {/* Quick access */}
-          <View style={styles.quickGrid}>
-            <QuickRoleCard
-              icon="truck"
-              label="Chauffeur"
-              description="App complète"
-              onPress={() => handleQuickAccess('driver')}
-            />
-            <QuickRoleCard
-              icon="briefcase"
-              label="Annonceur"
-              description="Lecture seule"
-              onPress={() => handleQuickAccess('advertiser')}
-            />
-            <QuickRoleCard
-              icon="map-pin"
-              label="Partenaire"
-              description="Lecture seule"
-              onPress={() => handleQuickAccess('partner')}
-            />
-          </View>
-
           <Text style={styles.webSignupNote}>
-            La création de compte annonceur et partenaire se fait sur le dashboard web.
+            Annonceur ou partenaire ? Création de compte sur le dashboard web.
           </Text>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -187,37 +156,6 @@ export default function LoginScreen() {
         </TouchableOpacity>
       </View>
     </View>
-  );
-}
-
-// ─── Quick access card ───────────────────────────────────────
-function QuickRoleCard({
-  icon,
-  label,
-  description,
-  onPress,
-}: {
-  icon: keyof typeof Feather.glyphMap;
-  label: string;
-  description: string;
-  onPress: () => void;
-}) {
-  return (
-    <TouchableOpacity
-      style={styles.quickCard}
-      onPress={onPress}
-      activeOpacity={0.75}
-    >
-      <View style={styles.quickIcon}>
-        <Feather name={icon} size={17} color={Colors.navy} />
-      </View>
-      <Text style={styles.quickTitle} numberOfLines={1}>
-        {label}
-      </Text>
-      <Text style={styles.quickDescription} numberOfLines={1}>
-        {description}
-      </Text>
-    </TouchableOpacity>
   );
 }
 

@@ -1,100 +1,107 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { UserRole, Driver, Company, Partner } from '../constants/Types';
-import { mockDrivers, mockCompanies } from '../mocks/data';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { UserRole, Driver, Company, Partner, ValidationStatus } from '../constants/Types';
+import { authClient } from '../lib/api';
+import { apiFetch } from '../lib/fetcher';
 
-const ROLE_STORAGE_KEY = '@publeader_role';
+type MeResponse = {
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    role: UserRole | 'admin' | 'team_member';
+    status: ValidationStatus;
+    phone?: string;
+    emailVerified: boolean;
+  };
+  driver: Driver | null;
+  company: Company | null;
+  partner: Partner | null;
+};
 
 type AuthState = {
   role: UserRole | null;
   isLoading: boolean;
+  status: ValidationStatus | null;
+  emailVerified: boolean;
+  userId: string | null;
   currentDriver: Driver | null;
   currentCompany: Company | null;
   currentPartner: Partner | null;
 };
 
 type AuthContextType = AuthState & {
-  setRole: (role: UserRole) => Promise<void>;
+  refresh: () => Promise<void>;
+  signInEmail: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<AuthState>({
-    role: null,
-    isLoading: true,
-    currentDriver: null,
-    currentCompany: null,
-    currentPartner: null,
-  });
+const initialState: AuthState = {
+  role: null,
+  isLoading: true,
+  status: null,
+  emailVerified: false,
+  userId: null,
+  currentDriver: null,
+  currentCompany: null,
+  currentPartner: null,
+};
 
-  useEffect(() => {
-    loadRole();
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [state, setState] = useState<AuthState>(initialState);
+
+  const hydrateFromMe = useCallback(async () => {
+    try {
+      const me = await apiFetch<MeResponse>('/api/me');
+      const role = (['driver', 'advertiser', 'partner'].includes(me.user.role)
+        ? (me.user.role as UserRole)
+        : null);
+      setState({
+        role,
+        isLoading: false,
+        status: me.user.status,
+        emailVerified: me.user.emailVerified,
+        userId: me.user.id,
+        currentDriver: me.driver,
+        currentCompany: me.company,
+        currentPartner: me.partner,
+      });
+    } catch {
+      setState({ ...initialState, isLoading: false });
+    }
   }, []);
 
-  const loadRole = async () => {
-    try {
-      const savedRole = await AsyncStorage.getItem(ROLE_STORAGE_KEY);
-      if (savedRole && ['driver', 'advertiser', 'partner'].includes(savedRole)) {
-        const role = savedRole as UserRole;
-        setState({
-          role,
-          isLoading: false,
-          currentDriver: role === 'driver' ? mockDrivers[0] : null,
-          currentCompany: role === 'advertiser' ? mockCompanies[0] : null,
-          currentPartner: role === 'partner' ? mockPartner : null,
-        });
-      } else {
-        setState((prev) => ({ ...prev, isLoading: false }));
+  useEffect(() => {
+    hydrateFromMe();
+  }, [hydrateFromMe]);
+
+  const signInEmail = useCallback(
+    async (email: string, password: string) => {
+      const res = await authClient.signIn.email({ email, password });
+      if (res.error) {
+        throw new Error(res.error.message ?? 'Connexion échouée');
       }
-    } catch {
-      setState((prev) => ({ ...prev, isLoading: false }));
-    }
-  };
+      await hydrateFromMe();
+    },
+    [hydrateFromMe],
+  );
 
-  const setRole = async (role: UserRole) => {
-    await AsyncStorage.setItem(ROLE_STORAGE_KEY, role);
-    setState({
-      role,
-      isLoading: false,
-      currentDriver: role === 'driver' ? mockDrivers[0] : null,
-      currentCompany: role === 'advertiser' ? mockCompanies[0] : null,
-      currentPartner: role === 'partner' ? mockPartner : null,
-    });
-  };
-
-  const logout = async () => {
-    await AsyncStorage.removeItem(ROLE_STORAGE_KEY);
-    setState({
-      role: null,
-      isLoading: false,
-      currentDriver: null,
-      currentCompany: null,
-      currentPartner: null,
-    });
-  };
+  const logout = useCallback(async () => {
+    try {
+      await authClient.signOut();
+    } catch {}
+    setState({ ...initialState, isLoading: false });
+  }, []);
 
   return (
-    <AuthContext.Provider value={{ ...state, setRole, logout }}>
+    <AuthContext.Provider
+      value={{ ...state, refresh: hydrateFromMe, signInEmail, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );
 }
-
-const mockPartner: Partner = {
-  id: 'p1',
-  businessName: 'Club Neon',
-  managerName: 'Yanis Haddad',
-  email: 'contact@clubneon.fr',
-  phone: '+33 1 42 00 18 44',
-  address: '18 rue Montorgueil',
-  city: 'Paris',
-  openingHours: '20h - 4h',
-  terminalStatus: 'online',
-  monthlySprayRevenue: 1240,
-  monthlyAdsRevenue: 430,
-};
 
 export function useAuth() {
   const context = useContext(AuthContext);
