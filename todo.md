@@ -19,12 +19,12 @@
 - [ ] Status check (validated only) on protected routes
 
 ### X2 — File upload infrastructure
-- [ ] Storage backend (S3 or local + signed URLs)
-- [ ] Multipart upload endpoint
-- [ ] File metadata collection (owner, mime, size, scope: doc/asset/visual)
-- [ ] Image resize + thumbnail
-- [ ] Mobile upload helper (camera/file picker → multipart)
-- [ ] Web upload helper (dropzone + progress)
+- [x] Storage backend (Cloudinary signed direct uploads)
+- [x] Signed-upload endpoint (`/api/uploads/sign`)
+- [x] File metadata embedded per use-case (documents); generic `lib/cloudinary.ts` reusable
+- [ ] Image resize + thumbnail (deferred — Cloudinary URL transforms cover most cases)
+- [x] Mobile upload helper (expo-image-picker + expo-document-picker → signed Cloudinary)
+- [ ] Web upload helper (dropzone + progress) — deferred until visuals/branding feature
 
 ### X3 — Notification engine
 - [ ] In-app notification model (per user, type, read/archived)
@@ -123,15 +123,15 @@
 
 ### D4 — Documents upload + validation
 - Backend
-  - [ ] Document model (license, registration, insurance, photos)
-  - [ ] Upload endpoint (multipart) — depends on X2
-  - [ ] Validation workflow (admin approve/reject per doc)
-  - [ ] `documentsUploaded` flag on driver
+  - [x] Document model (license, registration, insurance, RIB, vehicle photos)
+  - [x] Upload endpoint — Cloudinary signed direct upload + `/api/me/documents` POST
+  - [x] Validation workflow (admin approve/reject per doc type)
+  - [x] `documentsApproved` flag on driver (renamed from `documentsUploaded`)
 - Mobile
-  - [ ] Documents screen — list per type with status
-  - [ ] Upload via camera / file picker
+  - [x] Documents screen — list per type with status, reject reasons, re-upload
+  - [x] Upload via camera/gallery (expo-image-picker) + file picker (expo-document-picker)
 - Web (admin)
-  - [ ] Document review queue + approve/reject
+  - [x] Document review queue + approve/reject (file preview + reason input)
 
 ### D5 — Vehicles CRUD
 - Backend

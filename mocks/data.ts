@@ -30,7 +30,7 @@ export const mockDrivers: Driver[] = [
     availableBalanceCents: 0,
     pendingBalanceCents: 0,
     withdrawnTotalCents: 0,
-    documentsUploaded: true,
+    documentsApproved: true,
   },
   {
     id: 'd2',
@@ -52,7 +52,7 @@ export const mockDrivers: Driver[] = [
     availableBalanceCents: 0,
     pendingBalanceCents: 0,
     withdrawnTotalCents: 0,
-    documentsUploaded: true,
+    documentsApproved: true,
   },
   {
     id: 'd3',
@@ -74,7 +74,7 @@ export const mockDrivers: Driver[] = [
     availableBalanceCents: 0,
     pendingBalanceCents: 0,
     withdrawnTotalCents: 0,
-    documentsUploaded: true,
+    documentsApproved: true,
   },
   {
     id: 'd4',
@@ -96,7 +96,7 @@ export const mockDrivers: Driver[] = [
     availableBalanceCents: 0,
     pendingBalanceCents: 0,
     withdrawnTotalCents: 0,
-    documentsUploaded: true,
+    documentsApproved: true,
   },
   {
     id: 'd5',
@@ -118,7 +118,7 @@ export const mockDrivers: Driver[] = [
     availableBalanceCents: 0,
     pendingBalanceCents: 0,
     withdrawnTotalCents: 0,
-    documentsUploaded: false,
+    documentsApproved: false,
   },
   {
     id: 'd6',
@@ -140,7 +140,7 @@ export const mockDrivers: Driver[] = [
     availableBalanceCents: 0,
     pendingBalanceCents: 0,
     withdrawnTotalCents: 0,
-    documentsUploaded: false,
+    documentsApproved: false,
   },
   {
     id: 'd7',
@@ -162,7 +162,7 @@ export const mockDrivers: Driver[] = [
     availableBalanceCents: 0,
     pendingBalanceCents: 0,
     withdrawnTotalCents: 0,
-    documentsUploaded: true,
+    documentsApproved: true,
   },
 ];
 

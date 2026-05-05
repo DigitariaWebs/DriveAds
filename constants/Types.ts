@@ -31,7 +31,7 @@ export type Driver = {
   pendingBalanceCents: number;
   withdrawnTotalCents: number;
   bankAccount?: BankAccount;
-  documentsUploaded: boolean;
+  documentsApproved: boolean;
 };
 
 export type Company = {
