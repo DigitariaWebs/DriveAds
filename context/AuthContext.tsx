@@ -4,7 +4,7 @@ import { authClient } from '../lib/api';
 import { apiFetch } from '../lib/fetcher';
 
 type DriverStatsExtras = {
-  monthlyEarnings: number;
+  monthlyEarningsCents: number;
   growthPercent: number;
   activeCampaigns: number;
 };

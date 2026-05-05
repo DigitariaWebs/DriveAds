@@ -240,7 +240,7 @@ export default function DriverHomeScreen() {
             <Text style={styles.earningsLabel}>Revenus ce mois</Text>
             <View style={styles.earningsRow}>
               <Text style={styles.earningsAmount}>
-                {(currentDriverStats?.monthlyEarnings ?? 0).toLocaleString()} €
+                {((currentDriverStats?.monthlyEarningsCents ?? 0) / 100).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} €
               </Text>
               <View style={styles.growthPill}>
                 <Feather
@@ -268,7 +268,7 @@ export default function DriverHomeScreen() {
           <View style={styles.miniStatsRow}>
             <View style={styles.miniStat}>
               <Text style={styles.miniStatValue}>
-                {(currentDriver?.totalEarnings ?? 0).toLocaleString()} €
+                {((currentDriver?.totalEarningsCents ?? 0) / 100).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} €
               </Text>
               <Text style={styles.miniStatLabel}>Total gagné</Text>
             </View>

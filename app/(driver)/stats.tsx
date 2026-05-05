@@ -31,9 +31,9 @@ function formatKm(km: number): string {
   return km >= 1000 ? `${(km / 1000).toFixed(1)}k` : km.toString();
 }
 
-function avgPerCampaign(earnings: number, count: number): string {
+function avgPerCampaign(earningsCents: number, count: number): string {
   if (count === 0) return '0 €';
-  return `${Math.round(earnings / count)} €/campagne`;
+  return `${Math.round(earningsCents / count / 100)} €/campagne`;
 }
 
 export default function StatsScreen() {
@@ -69,7 +69,7 @@ export default function StatsScreen() {
   const breakdown = periodStats?.monthlyBreakdown ?? [];
   const maxAmount =
     breakdown.length > 0
-      ? Math.max(...breakdown.map((m) => m.amount))
+      ? Math.max(...breakdown.map((m) => m.amountCents))
       : 1;
 
   const STATS_GRID = [
@@ -86,7 +86,7 @@ export default function StatsScreen() {
     {
       label: 'Revenu moyen',
       value: avgPerCampaign(
-        periodStats?.earnings ?? 0,
+        periodStats?.earningsCents ?? 0,
         periodStats?.campaignsDone ?? 0,
       ),
       icon: 'trending-up' as const,
@@ -157,7 +157,7 @@ export default function StatsScreen() {
             {PERIODS.find((p) => p.key === period)?.label.toLowerCase()}
           </Text>
           <Text style={styles.revenueAmount}>
-            {(periodStats?.earnings ?? 0).toLocaleString()} €
+            {((periodStats?.earningsCents ?? 0) / 100).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} €
           </Text>
           <View
             style={[
@@ -221,7 +221,7 @@ export default function StatsScreen() {
                 >
                   <View style={styles.breakdownTop}>
                     <Text style={styles.breakdownMonth}>{item.month}</Text>
-                    <Text style={styles.breakdownAmount}>{item.amount} €</Text>
+                    <Text style={styles.breakdownAmount}>{(item.amountCents / 100).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} €</Text>
                   </View>
                   <Text style={styles.breakdownCampaigns}>
                     {item.campaigns} campagne
@@ -231,7 +231,7 @@ export default function StatsScreen() {
                     <View
                       style={[
                         styles.progressBarFill,
-                        { width: `${(item.amount / maxAmount) * 100}%` },
+                        { width: `${(item.amountCents / maxAmount) * 100}%` },
                       ]}
                     />
                   </View>

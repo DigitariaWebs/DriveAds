@@ -4,6 +4,12 @@ export type ValidationStatus = 'pending' | 'validated' | 'rejected';
 export type TrackingMode = 'gps' | 'manual';
 export type NotificationType = 'campaign' | 'payment' | 'validation' | 'system';
 
+export type BankAccount = {
+  iban: string;
+  bankName?: string;
+  accountHolder?: string;
+};
+
 export type Driver = {
   id: string;
   firstName: string;
@@ -20,7 +26,11 @@ export type Driver = {
   campaignsDone: number;
   rating: number;
   totalKm: number;
-  totalEarnings: number;
+  totalEarningsCents: number;
+  availableBalanceCents: number;
+  pendingBalanceCents: number;
+  withdrawnTotalCents: number;
+  bankAccount?: BankAccount;
   documentsUploaded: boolean;
 };
 

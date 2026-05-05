@@ -1,5 +1,14 @@
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
-import { router } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  StyleSheet,
+  Dimensions,
+  RefreshControl,
+} from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '../../constants/Colors';
@@ -7,51 +16,101 @@ import { FontFamily } from '../../constants/Typography';
 import { Shadows } from '../../constants/Spacing';
 import { TAB_BAR_HEIGHT, TAB_BAR_BOTTOM } from '../../constants/TabBarStyle';
 import GradientHeader from '../../components/GradientHeader';
+import { fetchWallet, type WalletResponse, type Transaction } from '../../lib/payments-api';
+import { formatEur } from '../../lib/money';
 
 const { width } = Dimensions.get('window');
 
-type Transaction = {
-  id: string;
-  brand: string;
-  type: string;
-  date: string;
-  amount: string;
-  pending?: boolean;
-};
-
-const TRANSACTIONS: Transaction[] = [
-  { id: '1', brand: 'Nike Air Max 2026', type: 'Campagne', date: '10 avr. 2026', amount: '+350 €' },
-  { id: '2', brand: 'Samsung Galaxy', type: 'Campagne', date: '2 avr. 2026', amount: '+460 €' },
-  { id: '3', brand: 'Coca-Cola Summer', type: 'Campagne', date: '28 mars 2026', amount: '+280 €', pending: true },
-  { id: '4', brand: 'Nike Running Caen', type: 'Campagne', date: '15 mars 2026', amount: '+250 €' },
-  { id: '5', brand: 'Retrait bancaire', type: 'Retrait', date: '1 mars 2026', amount: '-800 €' },
+const MONTHS_FR = [
+  'janv.', 'fév.', 'mars', 'avr.', 'mai', 'juin',
+  'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.',
 ];
 
+function fmtShortDate(iso: string): string {
+  const d = new Date(iso);
+  return `${d.getDate()} ${MONTHS_FR[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+function txTypeLabel(t: Transaction): string {
+  switch (t.type) {
+    case 'campaign_completion':
+      return 'Campagne';
+    case 'withdrawal_debit':
+      return 'Retrait';
+    case 'withdrawal_refund':
+      return 'Remboursement';
+    default:
+      return 'Ajustement';
+  }
+}
+
 export default function PaymentsScreen() {
+  const [wallet, setWallet] = useState<WalletResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const w = await fetchWallet();
+      setWallet(w);
+    } catch {
+      setWallet(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
+
+  const balances = wallet?.balances ?? {
+    availableBalanceCents: 0,
+    pendingBalanceCents: 0,
+    withdrawnTotalCents: 0,
+  };
+  const transactions = wallet?.transactions ?? [];
+
   return (
     <View style={styles.screen}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: TAB_BAR_HEIGHT + TAB_BAR_BOTTOM + 20 }}
+        contentContainerStyle={{
+          paddingBottom: TAB_BAR_HEIGHT + TAB_BAR_BOTTOM + 20,
+        }}
+        refreshControl={
+          <RefreshControl
+            refreshing={loading}
+            onRefresh={load}
+            tintColor={Colors.navy}
+          />
+        }
       >
         <GradientHeader
           title="Paiements"
           subtitle="Votre solde et vos transactions"
         />
 
-        {/* ─── Stacked wallet cards ──────────────────────── */}
         <View style={styles.walletArea}>
-          {/* Background peek cards */}
           <View style={[styles.peekCard, styles.peekCard1]}>
-            <Text style={styles.peekBrand}>Nike Air Max</Text>
-            <Text style={styles.peekType}>Campagne</Text>
+            <Text style={styles.peekBrand}>En attente</Text>
+            <Text style={styles.peekType}>
+              {formatEur(balances.pendingBalanceCents)}
+            </Text>
           </View>
           <View style={[styles.peekCard, styles.peekCard2]}>
-            <Text style={styles.peekBrand}>Samsung Galaxy</Text>
-            <Text style={styles.peekType}>Campagne</Text>
+            <Text style={styles.peekBrand}>Total retiré</Text>
+            <Text style={styles.peekType}>
+              {formatEur(balances.withdrawnTotalCents)}
+            </Text>
           </View>
 
-          {/* Main balance card */}
           <LinearGradient
             colors={[Colors.navyDark, Colors.navy, Colors.navyLight]}
             start={{ x: 0, y: 0 }}
@@ -65,22 +124,29 @@ export default function PaymentsScreen() {
               </View>
             </View>
 
-            <Text style={styles.mainCardAmount}>1 250,00 €</Text>
+            <Text style={styles.mainCardAmount}>
+              {formatEur(balances.availableBalanceCents)}
+            </Text>
 
             <View style={styles.mainCardBottom}>
               <View style={styles.pendingRow}>
                 <Text style={styles.pendingLabel}>En attente</Text>
-                <Text style={styles.pendingAmount}>280 €</Text>
+                <Text style={styles.pendingAmount}>
+                  {formatEur(balances.pendingBalanceCents)}
+                </Text>
               </View>
               <View style={styles.cardDots}>
                 <Text style={styles.cardDotsText}>Publeader</Text>
-                <Text style={styles.cardNumber}>•••• 4821</Text>
+                <Text style={styles.cardNumber}>
+                  {wallet?.config
+                    ? `Hold ${wallet.config.pendingHoldDays}j`
+                    : ''}
+                </Text>
               </View>
             </View>
           </LinearGradient>
         </View>
 
-        {/* ─── Quick actions ─────────────────────────────── */}
         <View style={styles.actionsCard}>
           <TouchableOpacity
             style={styles.actionItem}
@@ -110,26 +176,6 @@ export default function PaymentsScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* ─── Stats cards — flat monochrome ─────────────── */}
-        <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <Feather name="trending-up" size={16} color={Colors.gray500} />
-            <Text style={styles.statValue}>4 320 €</Text>
-            <Text style={styles.statLabel}>Total gagné</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Feather name="award" size={16} color={Colors.gray500} />
-            <Text style={styles.statValue}>12</Text>
-            <Text style={styles.statLabel}>Campagnes</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Feather name="clock" size={16} color={Colors.gray500} />
-            <Text style={styles.statValue}>280 €</Text>
-            <Text style={styles.statLabel}>En attente</Text>
-          </View>
-        </View>
-
-        {/* ─── Transactions ──────────────────────────────── */}
         <View style={styles.txSection}>
           <View style={styles.txHeader}>
             <Text style={styles.txSectionTitle}>Historique</Text>
@@ -138,41 +184,64 @@ export default function PaymentsScreen() {
             </TouchableOpacity>
           </View>
 
-          <View style={styles.txList}>
-            {TRANSACTIONS.map((tx, i) => {
-              const isWithdraw = tx.amount.startsWith('-');
-              return (
-                <TouchableOpacity
-                  key={tx.id}
-                  style={[styles.txItem, i < TRANSACTIONS.length - 1 && styles.txBorder]}
-                  onPress={() => router.push({ pathname: '/(driver)/transaction-detail', params: { txId: tx.id } })}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.txIcon}>
-                    <Feather
-                      name={isWithdraw ? 'arrow-up-right' : 'arrow-down-left'}
-                      size={16}
-                      color={isWithdraw ? Colors.danger : Colors.success}
-                    />
-                  </View>
-                  <View style={styles.txInfo}>
-                    <Text style={styles.txBrand}>{tx.brand}</Text>
-                    <Text style={styles.txDate}>{tx.date} · {tx.type}</Text>
-                  </View>
-                  <View style={styles.txRight}>
-                    <Text style={[styles.txAmount, isWithdraw && styles.txAmountWithdraw]}>
-                      {tx.amount}
-                    </Text>
-                    {tx.pending && (
-                      <View style={styles.txPendingBadge}>
-                        <Text style={styles.txPendingText}>En attente</Text>
-                      </View>
-                    )}
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+          {transactions.length === 0 ? (
+            <View style={styles.empty}>
+              <Feather name="inbox" size={28} color={Colors.gray400} />
+              <Text style={styles.emptyText}>Aucune transaction.</Text>
+            </View>
+          ) : (
+            <View style={styles.txList}>
+              {transactions.slice(0, 10).map((tx, i, arr) => {
+                const isDebit = tx.amountCents < 0;
+                const isPending = tx.tier === 'pending';
+                return (
+                  <TouchableOpacity
+                    key={tx.id}
+                    style={[
+                      styles.txItem,
+                      i < arr.length - 1 && styles.txBorder,
+                    ]}
+                    onPress={() =>
+                      router.push({
+                        pathname: '/(driver)/transaction-detail',
+                        params: { txId: tx.id },
+                      })
+                    }
+                    activeOpacity={0.7}
+                  >
+                    <View style={styles.txIcon}>
+                      <Feather
+                        name={isDebit ? 'arrow-up-right' : 'arrow-down-left'}
+                        size={16}
+                        color={isDebit ? Colors.danger : Colors.success}
+                      />
+                    </View>
+                    <View style={styles.txInfo}>
+                      <Text style={styles.txBrand}>{tx.description}</Text>
+                      <Text style={styles.txDate}>
+                        {fmtShortDate(tx.createdAt)} · {txTypeLabel(tx)}
+                      </Text>
+                    </View>
+                    <View style={styles.txRight}>
+                      <Text
+                        style={[
+                          styles.txAmount,
+                          isDebit && styles.txAmountWithdraw,
+                        ]}
+                      >
+                        {formatEur(tx.amountCents, { withSign: true })}
+                      </Text>
+                      {isPending && (
+                        <View style={styles.txPendingBadge}>
+                          <Text style={styles.txPendingText}>En attente</Text>
+                        </View>
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
         </View>
       </ScrollView>
     </View>
@@ -182,7 +251,6 @@ export default function PaymentsScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#F6F6F2' },
 
-  // ─── Wallet stacked cards ─────────────────────────────────
   walletArea: {
     paddingHorizontal: 20,
     paddingTop: 20,
@@ -200,16 +268,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
-  peekCard1: {
-    top: 16,
-    backgroundColor: '#E8EAF4',
-    zIndex: 1,
-  },
-  peekCard2: {
-    top: 28,
-    backgroundColor: '#D5DAF0',
-    zIndex: 2,
-  },
+  peekCard1: { top: 16, backgroundColor: '#E8EAF4', zIndex: 1 },
+  peekCard2: { top: 28, backgroundColor: '#D5DAF0', zIndex: 2 },
   peekBrand: {
     fontFamily: FontFamily.bold,
     fontSize: 13,
@@ -274,9 +334,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: 'rgba(255,255,255,0.8)',
   },
-  cardDots: {
-    alignItems: 'flex-end',
-  },
+  cardDots: { alignItems: 'flex-end' },
   cardDotsText: {
     fontFamily: FontFamily.medium,
     fontSize: 10,
@@ -289,7 +347,6 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
-  // ─── Quick actions — flat monochrome ──────────────────────
   actionsCard: {
     flexDirection: 'row',
     backgroundColor: Colors.white,
@@ -318,41 +375,7 @@ const styles = StyleSheet.create({
     color: Colors.gray700,
   },
 
-  // ─── Stats — flat monochrome ──────────────────────────────
-  statsRow: {
-    flexDirection: 'row',
-    gap: 10,
-    paddingHorizontal: 20,
-    marginBottom: 24,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: Colors.white,
-    borderRadius: 18,
-    padding: 14,
-    gap: 10,
-    borderWidth: 1,
-    borderColor: Colors.gray100,
-    ...Shadows.sm,
-  },
-  statValue: {
-    fontFamily: FontFamily.black,
-    fontSize: 15,
-    color: Colors.navy,
-    letterSpacing: -0.2,
-  },
-  statLabel: {
-    fontFamily: FontFamily.medium,
-    fontSize: 10,
-    color: Colors.gray500,
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-  },
-
-  // ─── Transactions ─────────────────────────────────────────
-  txSection: {
-    paddingHorizontal: 20,
-  },
+  txSection: { paddingHorizontal: 20 },
   txHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -407,18 +430,13 @@ const styles = StyleSheet.create({
     color: Colors.gray400,
     marginTop: 2,
   },
-  txRight: {
-    alignItems: 'flex-end',
-    gap: 3,
-  },
+  txRight: { alignItems: 'flex-end', gap: 3 },
   txAmount: {
     fontFamily: FontFamily.bold,
     fontSize: 14,
     color: Colors.success,
   },
-  txAmountWithdraw: {
-    color: Colors.danger,
-  },
+  txAmountWithdraw: { color: Colors.danger },
   txPendingBadge: {
     backgroundColor: Colors.warningSoft,
     paddingHorizontal: 6,
@@ -430,5 +448,15 @@ const styles = StyleSheet.create({
     fontSize: 8,
     color: Colors.warning,
     textTransform: 'uppercase',
+  },
+  empty: {
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 30,
+  },
+  emptyText: {
+    fontFamily: FontFamily.regular,
+    fontSize: 12.5,
+    color: Colors.gray500,
   },
 });

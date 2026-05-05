@@ -1,4 +1,13 @@
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  ActivityIndicator,
+} from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -6,132 +15,115 @@ import { Colors } from '../../constants/Colors';
 import { FontFamily } from '../../constants/Typography';
 import { Shadows } from '../../constants/Spacing';
 import { TAB_BAR_HEIGHT, TAB_BAR_BOTTOM } from '../../constants/TabBarStyle';
+import {
+  fetchTransactionDetail,
+  type TransactionDetail,
+} from '../../lib/payments-api';
+import { formatEur } from '../../lib/money';
 
-type TransactionData = {
-  id: string;
-  brand: string;
-  amount: string;
-  date: string;
-  fullDate: string;
-  pending: boolean;
-  type: string;
-  reference: string;
-  method: string;
-  timeline: { label: string; date: string }[];
-};
+const MONTHS_FR = [
+  'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
+  'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre',
+];
 
-const TX_DATA: Record<string, TransactionData> = {
-  '1': {
-    id: '1',
-    brand: 'Nike Air Max 2026',
-    amount: '+350 €',
-    date: '10 avr. 2026',
-    fullDate: '10 avril 2026',
-    pending: false,
-    type: 'Paiement campagne',
-    reference: 'TX-2026-04-001',
-    method: 'Virement bancaire',
-    timeline: [
-      { label: 'Campagne terminée', date: '8 avr. 2026' },
-      { label: 'Paiement initié', date: '9 avr. 2026' },
-      { label: 'Paiement reçu', date: '10 avr. 2026' },
-    ],
-  },
-  '2': {
-    id: '2',
-    brand: 'Samsung Galaxy',
-    amount: '+460 €',
-    date: '2 avr. 2026',
-    fullDate: '2 avril 2026',
-    pending: false,
-    type: 'Paiement campagne',
-    reference: 'TX-2026-04-002',
-    method: 'Virement bancaire',
-    timeline: [
-      { label: 'Campagne terminée', date: '31 mars 2026' },
-      { label: 'Paiement initié', date: '1 avr. 2026' },
-      { label: 'Paiement reçu', date: '2 avr. 2026' },
-    ],
-  },
-  '3': {
-    id: '3',
-    brand: 'Coca-Cola Summer',
-    amount: '+280 €',
-    date: '28 mars 2026',
-    fullDate: '28 mars 2026',
-    pending: true,
-    type: 'Paiement campagne',
-    reference: 'TX-2026-03-003',
-    method: 'Virement bancaire',
-    timeline: [
-      { label: 'Campagne terminée', date: '26 mars 2026' },
-      { label: 'Paiement initié', date: '27 mars 2026' },
-    ],
-  },
-  '4': {
-    id: '4',
-    brand: 'Nike Running Caen',
-    amount: '+250 €',
-    date: '15 mars 2026',
-    fullDate: '15 mars 2026',
-    pending: false,
-    type: 'Paiement campagne',
-    reference: 'TX-2026-03-004',
-    method: 'Virement bancaire',
-    timeline: [
-      { label: 'Campagne terminée', date: '13 mars 2026' },
-      { label: 'Paiement initié', date: '14 mars 2026' },
-      { label: 'Paiement reçu', date: '15 mars 2026' },
-    ],
-  },
-  '5': {
-    id: '5',
-    brand: 'Retrait bancaire',
-    amount: '-800 €',
-    date: '1 mars 2026',
-    fullDate: '1 mars 2026',
-    pending: false,
-    type: 'Retrait',
-    reference: 'TX-2026-03-005',
-    method: 'Virement bancaire',
-    timeline: [
-      { label: 'Demande de retrait', date: '28 fév. 2026' },
-      { label: 'Virement effectué', date: '1 mars 2026' },
-    ],
-  },
-};
+function fmtFullDate(iso: string): string {
+  const d = new Date(iso);
+  return `${d.getDate()} ${MONTHS_FR[d.getMonth()]} ${d.getFullYear()}`;
+}
 
-const DEFAULT_TX: TransactionData = {
-  id: '0',
-  brand: 'Transaction inconnue',
-  amount: '0 €',
-  date: '',
-  fullDate: '',
-  pending: false,
-  type: 'Inconnu',
-  reference: '-',
-  method: '-',
-  timeline: [],
-};
+function txTypeLabel(type: string): string {
+  switch (type) {
+    case 'campaign_completion':
+      return 'Paiement campagne';
+    case 'withdrawal_debit':
+      return 'Retrait';
+    case 'withdrawal_refund':
+      return 'Remboursement';
+    default:
+      return 'Ajustement';
+  }
+}
+
+function txMethodLabel(type: string): string {
+  switch (type) {
+    case 'campaign_completion':
+      return 'Crédit interne';
+    case 'withdrawal_debit':
+      return 'Virement bancaire';
+    case 'withdrawal_refund':
+      return 'Crédit interne';
+    default:
+      return '-';
+  }
+}
 
 export default function TransactionDetailScreen() {
   const insets = useSafeAreaInsets();
   const { txId } = useLocalSearchParams<{ txId: string }>();
-  const tx = TX_DATA[txId ?? ''] ?? DEFAULT_TX;
-  const isWithdraw = tx.amount.startsWith('-');
-  const isPending = tx.pending;
+  const [data, setData] = useState<TransactionDetail | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const detailRows = [
-    { label: 'Campagne', value: tx.brand },
-    { label: 'Date', value: tx.fullDate },
-    { label: 'Type', value: tx.type },
-    { label: 'Référence', value: tx.reference },
-    { label: 'Méthode', value: tx.method },
+  useEffect(() => {
+    if (!txId) return;
+    setLoading(true);
+    fetchTransactionDetail(txId)
+      .then(setData)
+      .catch(() => setData(null))
+      .finally(() => setLoading(false));
+  }, [txId]);
+
+  if (loading) {
+    return (
+      <View style={[styles.screen, styles.center]}>
+        <ActivityIndicator color={Colors.navy} />
+      </View>
+    );
+  }
+
+  if (!data) {
+    return (
+      <View style={[styles.screen, { paddingTop: insets.top }]}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>
+            <Feather name="arrow-left" size={22} color={Colors.navy} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Détail transaction</Text>
+          <View style={{ width: 40 }} />
+        </View>
+        <View style={styles.center}>
+          <Text style={styles.emptyText}>Transaction introuvable</Text>
+        </View>
+      </View>
+    );
+  }
+
+  const tx = data.transaction;
+  const isDebit = tx.amountCents < 0;
+  const isPending = tx.tier === 'pending';
+  const isRejected = data.context.withdrawal?.status === 'rejected';
+
+  const detailRows: { label: string; value: string }[] = [
+    { label: 'Description', value: tx.description },
+    { label: 'Date', value: fmtFullDate(tx.createdAt) },
+    { label: 'Type', value: txTypeLabel(tx.type) },
+    { label: 'Référence', value: `TX-${tx.id.slice(-8).toUpperCase()}` },
+    { label: 'Méthode', value: txMethodLabel(tx.type) },
   ];
+  if (data.context.withdrawal?.payoutReference) {
+    detailRows.push({
+      label: 'Réf. bancaire',
+      value: data.context.withdrawal.payoutReference,
+    });
+  }
+  if (data.context.withdrawal?.rejectReason) {
+    detailRows.push({
+      label: 'Motif rejet',
+      value: data.context.withdrawal.rejectReason,
+    });
+  }
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>
           <Feather name="arrow-left" size={22} color={Colors.navy} />
@@ -142,35 +134,77 @@ export default function TransactionDetailScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: TAB_BAR_HEIGHT + TAB_BAR_BOTTOM + 20 }}
+        contentContainerStyle={{
+          paddingBottom: TAB_BAR_HEIGHT + TAB_BAR_BOTTOM + 20,
+        }}
       >
-        {/* Status icon */}
         <View style={styles.statusSection}>
-          <View style={[styles.statusIconWrap, isPending ? styles.statusIconPending : styles.statusIconDone]}>
+          <View
+            style={[
+              styles.statusIconWrap,
+              isPending
+                ? styles.statusIconPending
+                : isRejected
+                  ? styles.statusIconRejected
+                  : styles.statusIconDone,
+            ]}
+          >
             <Feather
-              name={isPending ? 'clock' : 'check-circle'}
+              name={
+                isPending
+                  ? 'clock'
+                  : isRejected
+                    ? 'x-circle'
+                    : 'check-circle'
+              }
               size={36}
-              color={isPending ? Colors.warning : Colors.success}
+              color={
+                isPending
+                  ? Colors.warning
+                  : isRejected
+                    ? Colors.danger
+                    : Colors.success
+              }
             />
           </View>
 
-          {/* Amount */}
-          <Text style={[styles.amount, isWithdraw && { color: Colors.danger }]}>{tx.amount}</Text>
+          <Text style={[styles.amount, isDebit && { color: Colors.danger }]}>
+            {formatEur(tx.amountCents, { withSign: true })}
+          </Text>
 
-          {/* Status badge */}
-          <View style={[styles.statusBadge, isPending ? styles.statusBadgePending : styles.statusBadgeDone]}>
-            <Text style={[styles.statusBadgeText, isPending ? { color: Colors.warning } : { color: Colors.success }]}>
-              {isPending ? 'En attente' : 'Complété'}
+          <View
+            style={[
+              styles.statusBadge,
+              isPending
+                ? styles.statusBadgePending
+                : isRejected
+                  ? styles.statusBadgeRejected
+                  : styles.statusBadgeDone,
+            ]}
+          >
+            <Text
+              style={[
+                styles.statusBadgeText,
+                isPending
+                  ? { color: Colors.warning }
+                  : isRejected
+                    ? { color: Colors.danger }
+                    : { color: Colors.success },
+              ]}
+            >
+              {isPending ? 'En attente' : isRejected ? 'Rejeté' : 'Complété'}
             </Text>
           </View>
         </View>
 
-        {/* Details card */}
         <View style={styles.detailsCard}>
           {detailRows.map((row, i) => (
             <View
               key={row.label}
-              style={[styles.detailRow, i < detailRows.length - 1 && styles.detailRowBorder]}
+              style={[
+                styles.detailRow,
+                i < detailRows.length - 1 && styles.detailRowBorder,
+              ]}
             >
               <Text style={styles.detailLabel}>{row.label}</Text>
               <Text style={styles.detailValue}>{row.value}</Text>
@@ -178,30 +212,39 @@ export default function TransactionDetailScreen() {
           ))}
         </View>
 
-        {/* Timeline card */}
-        {tx.timeline.length > 0 && (
+        {data.timeline.length > 0 && (
           <View style={styles.timelineCard}>
             <Text style={styles.timelineTitle}>Chronologie</Text>
-            {tx.timeline.map((step, i) => (
+            {data.timeline.map((step, i) => (
               <View key={i} style={styles.timelineRow}>
                 <View style={styles.timelineDotCol}>
-                  <View style={[styles.timelineDot, i === tx.timeline.length - 1 && styles.timelineDotActive]} />
-                  {i < tx.timeline.length - 1 && <View style={styles.timelineLine} />}
+                  <View
+                    style={[
+                      styles.timelineDot,
+                      i === data.timeline.length - 1 && styles.timelineDotActive,
+                    ]}
+                  />
+                  {i < data.timeline.length - 1 && (
+                    <View style={styles.timelineLine} />
+                  )}
                 </View>
                 <View style={styles.timelineContent}>
                   <Text style={styles.timelineLabel}>{step.label}</Text>
-                  <Text style={styles.timelineDate}>{step.date}</Text>
+                  <Text style={styles.timelineDate}>
+                    {fmtFullDate(step.date)}
+                  </Text>
                 </View>
               </View>
             ))}
           </View>
         )}
 
-        {/* Report button */}
         <View style={styles.reportContainer}>
           <TouchableOpacity
             style={styles.reportBtn}
-            onPress={() => Alert.alert('Info', 'Fonctionnalité bientôt disponible')}
+            onPress={() =>
+              Alert.alert('Info', 'Fonctionnalité bientôt disponible')
+            }
             activeOpacity={0.7}
           >
             <Feather name="alert-circle" size={16} color={Colors.danger} />
@@ -215,8 +258,12 @@ export default function TransactionDetailScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.navyTint },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  emptyText: {
+    fontFamily: FontFamily.regular,
+    color: Colors.gray500,
+  },
 
-  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -240,7 +287,6 @@ const styles = StyleSheet.create({
     color: Colors.navy,
   },
 
-  // Status section
   statusSection: {
     alignItems: 'center',
     paddingTop: 24,
@@ -254,12 +300,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 16,
   },
-  statusIconDone: {
-    backgroundColor: Colors.successSoft,
-  },
-  statusIconPending: {
-    backgroundColor: Colors.warningSoft,
-  },
+  statusIconDone: { backgroundColor: Colors.successSoft },
+  statusIconPending: { backgroundColor: Colors.warningSoft },
+  statusIconRejected: { backgroundColor: Colors.dangerSoft },
   amount: {
     fontFamily: FontFamily.black,
     fontSize: 36,
@@ -271,18 +314,14 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 100,
   },
-  statusBadgeDone: {
-    backgroundColor: Colors.successSoft,
-  },
-  statusBadgePending: {
-    backgroundColor: Colors.warningSoft,
-  },
+  statusBadgeDone: { backgroundColor: Colors.successSoft },
+  statusBadgePending: { backgroundColor: Colors.warningSoft },
+  statusBadgeRejected: { backgroundColor: Colors.dangerSoft },
   statusBadgeText: {
     fontFamily: FontFamily.semiBold,
     fontSize: 12,
   },
 
-  // Details card
   detailsCard: {
     backgroundColor: Colors.white,
     marginHorizontal: 16,
@@ -315,7 +354,6 @@ const styles = StyleSheet.create({
     marginLeft: 16,
   },
 
-  // Timeline card
   timelineCard: {
     backgroundColor: Colors.white,
     marginHorizontal: 16,
@@ -330,14 +368,8 @@ const styles = StyleSheet.create({
     color: Colors.black,
     marginBottom: 14,
   },
-  timelineRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  timelineDotCol: {
-    alignItems: 'center',
-    width: 16,
-  },
+  timelineRow: { flexDirection: 'row', gap: 12 },
+  timelineDotCol: { alignItems: 'center', width: 16 },
   timelineDot: {
     width: 10,
     height: 10,
@@ -345,19 +377,14 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.gray300,
     marginTop: 2,
   },
-  timelineDotActive: {
-    backgroundColor: Colors.navy,
-  },
+  timelineDotActive: { backgroundColor: Colors.navy },
   timelineLine: {
     width: 2,
     flex: 1,
     backgroundColor: Colors.gray200,
     marginVertical: 2,
   },
-  timelineContent: {
-    flex: 1,
-    paddingBottom: 16,
-  },
+  timelineContent: { flex: 1, paddingBottom: 16 },
   timelineLabel: {
     fontFamily: FontFamily.semiBold,
     fontSize: 13,
@@ -370,7 +397,6 @@ const styles = StyleSheet.create({
     color: Colors.gray400,
   },
 
-  // Report button
   reportContainer: {
     paddingHorizontal: 16,
     marginBottom: 16,

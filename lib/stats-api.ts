@@ -5,7 +5,7 @@ export type StatsPeriod = 'week' | 'month' | '3mo' | 'year';
 export type LifetimeStats = {
   campaignsDone: number;
   totalKm: number;
-  totalEarnings: number;
+  totalEarningsCents: number;
   rating: number;
 };
 
@@ -14,12 +14,12 @@ export type PeriodStats = {
   windowStart: string;
   windowEnd: string;
   campaignsDone: number;
-  earnings: number;
+  earningsCents: number;
   km: number;
   activeCampaigns: number;
   growthPercent: number;
-  monthlyEarnings: number;
-  monthlyBreakdown: { month: string; amount: number; campaigns: number }[];
+  monthlyEarningsCents: number;
+  monthlyBreakdown: { month: string; amountCents: number; campaigns: number }[];
 };
 
 export type StatsResponse = {

@@ -13,7 +13,7 @@ type CampaignDTO = {
   startDate: string;
   endDate: string;
   durationDays: number;
-  reward: number;
+  rewardCents: number;
   status: 'draft' | 'upcoming' | 'active' | 'completed';
   progress: number;
   kmDone: number;
@@ -51,7 +51,7 @@ function toMobileCampaign(dto: CampaignDTO, driverId?: string | null): Campaign 
     startDate: dto.startDate,
     endDate: dto.endDate,
     durationDays: dto.durationDays,
-    reward: dto.reward,
+    reward: Math.round(dto.rewardCents / 100),
     status,
     progress: dto.progress,
     kmDone: dto.kmDone,

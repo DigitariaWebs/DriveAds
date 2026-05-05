@@ -188,7 +188,7 @@ export default function DriverProfileScreen() {
             <View style={styles.statsRow}>
               <View style={styles.stat}>
                 <Text style={styles.statValue}>
-                  {driver.totalEarnings.toLocaleString()} €
+                  {(driver.totalEarningsCents / 100).toLocaleString('fr-FR', { maximumFractionDigits: 2 })} €
                 </Text>
                 <Text style={styles.statLabel}>gagnés</Text>
               </View>

@@ -16,22 +16,61 @@ import { FontFamily } from '../../constants/Typography';
 import { Shadows } from '../../constants/Spacing';
 import { TAB_BAR_HEIGHT, TAB_BAR_BOTTOM } from '../../constants/TabBarStyle';
 import Button from '../../components/ui/Button';
+import { useAuth } from '../../context/AuthContext';
+import { updateBankAccount } from '../../lib/payments-api';
 
 const CITIES = ['Paris', 'Lyon', 'Caen', 'Marseille', 'Nice', 'Bordeaux'];
 
 export default function EditProfileScreen() {
   const insets = useSafeAreaInsets();
+  const { currentDriver, refresh } = useAuth();
 
-  const [firstName, setFirstName] = useState('Marie');
-  const [lastName, setLastName] = useState('Dupont');
-  const [email, setEmail] = useState('marie.dupont@email.com');
-  const [phone, setPhone] = useState('+33 6 12 34 56 78');
-  const [selectedCity, setSelectedCity] = useState('Paris');
+  const [firstName, setFirstName] = useState(currentDriver?.firstName ?? '');
+  const [lastName, setLastName] = useState(currentDriver?.lastName ?? '');
+  const [email] = useState(''); // read-only for now (managed by Better Auth)
+  const [phone, setPhone] = useState(currentDriver?.phone ?? '');
+  const [selectedCity, setSelectedCity] = useState<string>(
+    currentDriver?.city ?? 'Paris',
+  );
+  const [iban, setIban] = useState(currentDriver?.bankAccount?.iban ?? '');
+  const [bankName, setBankName] = useState(
+    currentDriver?.bankAccount?.bankName ?? '',
+  );
+  const [accountHolder, setAccountHolder] = useState(
+    currentDriver?.bankAccount?.accountHolder ??
+      `${currentDriver?.firstName ?? ''} ${currentDriver?.lastName ?? ''}`.trim(),
+  );
+  const [savingBank, setSavingBank] = useState(false);
+
+  const handleSaveBank = async () => {
+    if (!iban.trim()) {
+      Alert.alert('IBAN requis', 'Veuillez saisir un IBAN valide.');
+      return;
+    }
+    setSavingBank(true);
+    try {
+      await updateBankAccount({
+        iban: iban.trim(),
+        bankName: bankName.trim() || undefined,
+        accountHolder: accountHolder.trim() || undefined,
+      });
+      await refresh();
+      Alert.alert('Succès', 'Coordonnées bancaires enregistrées.');
+    } catch (e: any) {
+      Alert.alert('Erreur', e?.message ?? 'Sauvegarde échouée.');
+    } finally {
+      setSavingBank(false);
+    }
+  };
 
   const handleSave = () => {
-    Alert.alert('Succès', 'Vos modifications ont été enregistrées.', [
-      { text: 'OK', onPress: () => router.back() },
-    ]);
+    // Profile fields (name/phone/city) edit endpoint not yet implemented.
+    // Bank fields save via separate button above.
+    Alert.alert(
+      'Info',
+      'Pour l\'instant seul l\'IBAN se sauvegarde. Le reste arrive bientôt.',
+      [{ text: 'OK', onPress: () => router.back() }],
+    );
   };
 
   return (
@@ -91,15 +130,13 @@ export default function EditProfileScreen() {
 
             <View style={styles.fieldGroup}>
               <Text style={styles.fieldLabel}>Email</Text>
-              <View style={styles.inputWrapper}>
+              <View style={[styles.inputWrapper, { opacity: 0.6 }]}>
                 <TextInput
                   style={styles.input}
                   value={email}
-                  onChangeText={setEmail}
-                  placeholder="Email"
+                  editable={false}
+                  placeholder="Géré via Better Auth"
                   placeholderTextColor={Colors.gray400}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
                 />
               </View>
             </View>
@@ -144,10 +181,68 @@ export default function EditProfileScreen() {
             </View>
           </View>
 
+          {/* Bank account card */}
+          <View style={[styles.formCard, { marginTop: 16 }]}>
+            <Text style={styles.sectionTitle}>Coordonnées bancaires</Text>
+            <Text style={styles.sectionHint}>
+              Nécessaire pour demander un retrait.
+            </Text>
+
+            <View style={styles.fieldGroup}>
+              <Text style={styles.fieldLabel}>IBAN</Text>
+              <View style={styles.inputWrapper}>
+                <TextInput
+                  style={styles.input}
+                  value={iban}
+                  onChangeText={setIban}
+                  placeholder="FR76 1234 5678 9012 3456 7890 123"
+                  placeholderTextColor={Colors.gray400}
+                  autoCapitalize="characters"
+                />
+              </View>
+            </View>
+
+            <View style={styles.fieldGroup}>
+              <Text style={styles.fieldLabel}>Banque</Text>
+              <View style={styles.inputWrapper}>
+                <TextInput
+                  style={styles.input}
+                  value={bankName}
+                  onChangeText={setBankName}
+                  placeholder="BNP Paribas"
+                  placeholderTextColor={Colors.gray400}
+                />
+              </View>
+            </View>
+
+            <View style={styles.fieldGroup}>
+              <Text style={styles.fieldLabel}>Titulaire du compte</Text>
+              <View style={styles.inputWrapper}>
+                <TextInput
+                  style={styles.input}
+                  value={accountHolder}
+                  onChangeText={setAccountHolder}
+                  placeholder="Prénom Nom"
+                  placeholderTextColor={Colors.gray400}
+                />
+              </View>
+            </View>
+
+            <View style={{ marginTop: 8 }}>
+              <Button
+                size="lg"
+                loading={savingBank}
+                onPress={handleSaveBank}
+              >
+                Enregistrer l'IBAN
+              </Button>
+            </View>
+          </View>
+
           {/* Save button */}
           <View style={styles.buttonWrap}>
-            <Button size="lg" onPress={handleSave}>
-              Enregistrer les modifications
+            <Button size="lg" variant="outline" onPress={handleSave}>
+              Retour
             </Button>
           </View>
         </View>
@@ -283,5 +378,17 @@ const styles = StyleSheet.create({
   buttonWrap: {
     marginTop: 24,
     alignItems: 'center',
+  },
+  sectionTitle: {
+    fontFamily: FontFamily.bold,
+    fontSize: 14,
+    color: Colors.navy,
+    marginBottom: 4,
+  },
+  sectionHint: {
+    fontFamily: FontFamily.regular,
+    fontSize: 11,
+    color: Colors.gray500,
+    marginBottom: 12,
   },
 });

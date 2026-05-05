@@ -1,39 +1,94 @@
-import { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  RefreshControl,
+  ActivityIndicator,
+} from 'react-native';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
 import { Colors } from '../../constants/Colors';
 import { FontFamily } from '../../constants/Typography';
 import { Shadows } from '../../constants/Spacing';
 import { TAB_BAR_HEIGHT, TAB_BAR_BOTTOM } from '../../constants/TabBarStyle';
+import { fetchStatement, type StatementSummary } from '../../lib/payments-api';
+import { formatEur } from '../../lib/money';
+import { authClient } from '../../lib/api';
 
-const MONTHS = ['Janv.', 'Fév.', 'Mars', 'Avr.'];
+const baseURL =
+  process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
 
-type Transaction = {
-  id: string;
-  brand: string;
-  type: string;
-  date: string;
-  amount: string;
-  pending?: boolean;
-};
-
-const TRANSACTIONS: Transaction[] = [
-  { id: '1', brand: 'Nike Air Max 2026', type: 'Campagne', date: '10 avr. 2026', amount: '+350 €' },
-  { id: '2', brand: 'Samsung Galaxy', type: 'Campagne', date: '2 avr. 2026', amount: '+460 €' },
-  { id: '3', brand: 'Coca-Cola Summer', type: 'Campagne', date: '28 mars 2026', amount: '+280 €', pending: true },
-  { id: '4', brand: 'Nike Running Caen', type: 'Campagne', date: '15 mars 2026', amount: '+250 €' },
-  { id: '5', brand: 'Retrait bancaire', type: 'Retrait', date: '1 mars 2026', amount: '-800 €' },
+const MONTHS_FR_SHORT = [
+  'janv.', 'fév.', 'mars', 'avr.', 'mai', 'juin',
+  'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.',
 ];
+
+function fmtShortDate(iso: string): string {
+  const d = new Date(iso);
+  return `${d.getDate()} ${MONTHS_FR_SHORT[d.getMonth()]} ${d.getFullYear()}`;
+}
 
 export default function StatementScreen() {
   const insets = useSafeAreaInsets();
-  const [activeMonth, setActiveMonth] = useState('Avr.');
+  const [data, setData] = useState<StatementSummary | null>(null);
+  const [period, setPeriod] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+
+  const load = useCallback(async (p?: string) => {
+    setLoading(true);
+    try {
+      const res = await fetchStatement(p);
+      setData(res);
+      setPeriod(res.period);
+    } catch {
+      setData(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const handleDownload = async () => {
+    if (!period) return;
+    setDownloading(true);
+    try {
+      const cookie = authClient.getCookie();
+      const url = `${baseURL}/api/me/statements/${period}`;
+      const target = `${FileSystem.cacheDirectory}releve-${period}.pdf`;
+      const dl = await FileSystem.downloadAsync(url, target, {
+        headers: cookie ? { Cookie: cookie } : undefined,
+      });
+      if (dl.status !== 200) {
+        throw new Error(`HTTP ${dl.status}`);
+      }
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(dl.uri, {
+          mimeType: 'application/pdf',
+          UTI: 'com.adobe.pdf',
+        });
+      } else {
+        Alert.alert('Téléchargé', `Fichier disponible : ${dl.uri}`);
+      }
+    } catch (e: any) {
+      Alert.alert('Erreur', e?.message ?? 'Téléchargement échoué.');
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>
           <Feather name="arrow-left" size={22} color={Colors.navy} />
@@ -44,105 +99,158 @@ export default function StatementScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: TAB_BAR_HEIGHT + TAB_BAR_BOTTOM + 20 }}
+        contentContainerStyle={{
+          paddingBottom: TAB_BAR_HEIGHT + TAB_BAR_BOTTOM + 20,
+        }}
+        refreshControl={
+          <RefreshControl
+            refreshing={loading}
+            onRefresh={() => load(period ?? undefined)}
+            tintColor={Colors.navy}
+          />
+        }
       >
-        {/* Month selector */}
+        {/* Period selector */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.monthsRow}
         >
-          {MONTHS.map((month) => (
+          {(data?.periods ?? []).map((p) => (
             <TouchableOpacity
-              key={month}
+              key={p.period}
               style={[
                 styles.monthPill,
-                activeMonth === month && styles.monthPillActive,
+                period === p.period && styles.monthPillActive,
               ]}
-              onPress={() => setActiveMonth(month)}
+              onPress={() => load(p.period)}
               activeOpacity={0.7}
             >
               <Text
                 style={[
                   styles.monthText,
-                  activeMonth === month && styles.monthTextActive,
+                  period === p.period && styles.monthTextActive,
                 ]}
               >
-                {month}
+                {p.label}
               </Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
 
-        {/* Summary card */}
         <View style={styles.summaryCard}>
           <View style={styles.summaryRow}>
             <View style={styles.summaryItem}>
               <Text style={styles.summaryLabel}>Revenus</Text>
-              <Text style={[styles.summaryValue, { color: Colors.success }]}>+1 340 €</Text>
+              <Text style={[styles.summaryValue, { color: Colors.success }]}>
+                {formatEur(data?.incomeCents ?? 0, { withSign: true })}
+              </Text>
             </View>
             <View style={styles.summaryDivider} />
             <View style={styles.summaryItem}>
               <Text style={styles.summaryLabel}>Retraits</Text>
-              <Text style={[styles.summaryValue, { color: Colors.danger }]}>-800 €</Text>
+              <Text style={[styles.summaryValue, { color: Colors.danger }]}>
+                -{formatEur(data?.withdrawnCents ?? 0)}
+              </Text>
             </View>
             <View style={styles.summaryDivider} />
             <View style={styles.summaryItem}>
               <Text style={styles.summaryLabel}>Solde net</Text>
-              <Text style={[styles.summaryValue, { color: Colors.navy }]}>+540 €</Text>
+              <Text style={[styles.summaryValue, { color: Colors.navy }]}>
+                {formatEur(data?.netCents ?? 0, { withSign: true })}
+              </Text>
             </View>
           </View>
         </View>
 
-        {/* Transaction list */}
         <View style={styles.txSection}>
           <Text style={styles.txSectionTitle}>Transactions</Text>
-          <View style={styles.txList}>
-            {TRANSACTIONS.map((tx, i) => {
-              const isWithdraw = tx.amount.startsWith('-');
-              return (
-                <TouchableOpacity
-                  key={tx.id}
-                  style={[styles.txItem, i < TRANSACTIONS.length - 1 && styles.txBorder]}
-                  onPress={() => router.push({ pathname: '/(driver)/transaction-detail', params: { txId: tx.id } })}
-                  activeOpacity={0.7}
-                >
-                  <View style={[styles.txIcon, isWithdraw ? styles.txIconWithdraw : styles.txIconIncome]}>
-                    <Feather
-                      name={isWithdraw ? 'arrow-up-right' : 'arrow-down-left'}
-                      size={16}
-                      color={isWithdraw ? Colors.danger : Colors.success}
-                    />
-                  </View>
-                  <View style={styles.txInfo}>
-                    <Text style={styles.txBrand}>{tx.brand}</Text>
-                    <Text style={styles.txDate}>{tx.date} · {tx.type}</Text>
-                  </View>
-                  <View style={styles.txRight}>
-                    <Text style={[styles.txAmount, isWithdraw && styles.txAmountWithdraw]}>
-                      {tx.amount}
-                    </Text>
-                    {tx.pending && (
-                      <View style={styles.txPendingBadge}>
-                        <Text style={styles.txPendingText}>En attente</Text>
-                      </View>
-                    )}
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+          {(data?.transactions.length ?? 0) === 0 ? (
+            <View style={styles.empty}>
+              <Feather name="inbox" size={28} color={Colors.gray400} />
+              <Text style={styles.emptyText}>
+                Aucune transaction sur cette période.
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.txList}>
+              {(data?.transactions ?? []).map((tx, i, arr) => {
+                const isDebit = tx.amountCents < 0;
+                return (
+                  <TouchableOpacity
+                    key={tx.id}
+                    style={[
+                      styles.txItem,
+                      i < arr.length - 1 && styles.txBorder,
+                    ]}
+                    onPress={() =>
+                      router.push({
+                        pathname: '/(driver)/transaction-detail',
+                        params: { txId: tx.id },
+                      })
+                    }
+                    activeOpacity={0.7}
+                  >
+                    <View
+                      style={[
+                        styles.txIcon,
+                        isDebit ? styles.txIconWithdraw : styles.txIconIncome,
+                      ]}
+                    >
+                      <Feather
+                        name={isDebit ? 'arrow-up-right' : 'arrow-down-left'}
+                        size={16}
+                        color={isDebit ? Colors.danger : Colors.success}
+                      />
+                    </View>
+                    <View style={styles.txInfo}>
+                      <Text style={styles.txBrand}>{tx.description}</Text>
+                      <Text style={styles.txDate}>
+                        {fmtShortDate(tx.createdAt)}
+                      </Text>
+                    </View>
+                    <View style={styles.txRight}>
+                      <Text
+                        style={[
+                          styles.txAmount,
+                          isDebit && styles.txAmountWithdraw,
+                        ]}
+                      >
+                        {formatEur(tx.amountCents, { withSign: true })}
+                      </Text>
+                      {tx.tier === 'pending' && (
+                        <View style={styles.txPendingBadge}>
+                          <Text style={styles.txPendingText}>En attente</Text>
+                        </View>
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
         </View>
 
-        {/* Download button */}
         <View style={styles.downloadContainer}>
           <TouchableOpacity
-            style={styles.downloadBtn}
-            onPress={() => Alert.alert('Info', 'Fonctionnalité bientôt disponible')}
+            style={[
+              styles.downloadBtn,
+              downloading && { opacity: 0.5 },
+            ]}
+            onPress={handleDownload}
             activeOpacity={0.7}
+            disabled={downloading || !period}
           >
-            <Feather name="download" size={16} color={Colors.navy} />
-            <Text style={styles.downloadText}>Télécharger le relevé PDF</Text>
+            {downloading ? (
+              <ActivityIndicator color={Colors.navy} />
+            ) : (
+              <>
+                <Feather name="download" size={16} color={Colors.navy} />
+                <Text style={styles.downloadText}>
+                  Télécharger le relevé PDF
+                </Text>
+              </>
+            )}
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -153,7 +261,6 @@ export default function StatementScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.navyTint },
 
-  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -177,7 +284,6 @@ const styles = StyleSheet.create({
     color: Colors.navy,
   },
 
-  // Month selector
   monthsRow: {
     flexDirection: 'row',
     gap: 8,
@@ -186,25 +292,20 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   monthPill: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 100,
     backgroundColor: Colors.white,
     ...Shadows.sm,
   },
-  monthPillActive: {
-    backgroundColor: Colors.navy,
-  },
+  monthPillActive: { backgroundColor: Colors.navy },
   monthText: {
     fontFamily: FontFamily.semiBold,
     fontSize: 13,
     color: Colors.navy,
   },
-  monthTextActive: {
-    color: Colors.white,
-  },
+  monthTextActive: { color: Colors.white },
 
-  // Summary card
   summaryCard: {
     backgroundColor: Colors.white,
     marginHorizontal: 16,
@@ -213,15 +314,8 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     ...Shadows.sm,
   },
-  summaryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  summaryItem: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 4,
-  },
+  summaryRow: { flexDirection: 'row', alignItems: 'center' },
+  summaryItem: { flex: 1, alignItems: 'center', gap: 4 },
   summaryLabel: {
     fontFamily: FontFamily.regular,
     fontSize: 11,
@@ -238,11 +332,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.gray100,
   },
 
-  // Transactions
-  txSection: {
-    paddingHorizontal: 16,
-    marginBottom: 24,
-  },
+  txSection: { paddingHorizontal: 16, marginBottom: 24 },
   txSectionTitle: {
     fontFamily: FontFamily.bold,
     fontSize: 16,
@@ -285,18 +375,13 @@ const styles = StyleSheet.create({
     color: Colors.gray400,
     marginTop: 2,
   },
-  txRight: {
-    alignItems: 'flex-end',
-    gap: 3,
-  },
+  txRight: { alignItems: 'flex-end', gap: 3 },
   txAmount: {
     fontFamily: FontFamily.bold,
     fontSize: 14,
     color: Colors.success,
   },
-  txAmountWithdraw: {
-    color: Colors.danger,
-  },
+  txAmountWithdraw: { color: Colors.danger },
   txPendingBadge: {
     backgroundColor: Colors.warningSoft,
     paddingHorizontal: 6,
@@ -310,7 +395,17 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
 
-  // Download button
+  empty: {
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 30,
+  },
+  emptyText: {
+    fontFamily: FontFamily.regular,
+    fontSize: 12,
+    color: Colors.gray500,
+  },
+
   downloadContainer: {
     paddingHorizontal: 16,
     marginBottom: 16,

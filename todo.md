@@ -108,18 +108,18 @@
 
 ### D3 — Payments + withdrawals + statements
 - Backend
-  - [ ] Payment history per driver
-  - [ ] Transaction detail
-  - [ ] Withdrawal request submission (presets + custom)
-  - [ ] Withdrawal processing (admin → payout)
-  - [ ] Statement generation (PDF, monthly)
+  - [x] Payment history per driver
+  - [x] Transaction detail
+  - [x] Withdrawal request submission (presets + custom)
+  - [x] Withdrawal processing (admin → payout)
+  - [x] Statement generation (PDF, monthly)
 - Mobile
-  - [ ] Payments history screen
-  - [ ] Transaction detail screen
-  - [ ] Withdraw screen (presets + custom amount)
-  - [ ] Statement download
+  - [x] Payments history screen
+  - [x] Transaction detail screen
+  - [x] Withdraw screen (presets + custom amount)
+  - [x] Statement download
 - Web (admin)
-  - [ ] Withdrawal queue + process action
+  - [x] Withdrawal queue + process action
 
 ### D4 — Documents upload + validation
 - Backend
