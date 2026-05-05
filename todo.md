@@ -8,205 +8,383 @@
 - Enforce read-only mode for partner + advertiser roles on mobile API surface (block mutations server-side).
 - Hide / disable mutation UI on mobile partner + advertiser screens (forms, create buttons, edit actions).
 
-## Web Backend (serves Web + Mobile)
-
-### Auth & Identity (Better Auth + MongoDB, dual-client: web cookies + mobile SecureStore via @better-auth/expo)
-- [x] User accounts with roles: admin, advertiser, driver, partner, team_member
-- [x] Driver self-registration (4-step: identity, vehicle, security, documents)
-- [x] Company self-registration (creates Better Auth organization)
-- [x] Partner registration
-- [x] Login / logout
-- [x] Token refresh (Better Auth session expiry + updateAge)
-- [x] Password reset via email OTP (6-digit, 10min)
-- [x] Change password
-- [x] Current-user profile lookup (`/api/me` hydrates role + linked entity)
-- [x] Pending state for newly-registered drivers/companies/partners (await admin validation)
-- [x] Email verification via OTP on signup
-- [x] Admin seed script
-- [ ] Role-based access control middleware on protected routes (server-side guards per endpoint)
-- [ ] Admin force-logout / ban / unban UI (admin plugin available, no UI yet)
-- [ ] Team member invite acceptance UI (organization plugin wired, invite-accept screen pending)
-- [ ] SMTP credentials in prod (currently dev console fallback)
-
-### Drivers
-- [ ] Driver profile (identity, contact, city)
-- [ ] Vehicle management (one or multiple cars per driver: make, model, year, plate, type, inspection)
-- [ ] Document upload + validation workflow (license, registration, insurance, photos)
-- [ ] Driver status lifecycle (pending → validated/rejected)
-- [ ] Driver KYC flow (ID verification, selfie liveness, address proof) — deferred
-- [ ] KYC status field (unverified | pending | verified | rejected) — deferred
-- [ ] Block driver withdrawals until KYC verified — deferred
-- [ ] KYC re-verification triggers (expired ID, address change) — deferred
-- [ ] Driver stats aggregates (monthly earnings, total earnings, campaigns done, rating, total km, growth)
-- [ ] Driver campaign history
-- [ ] Driver payment history + statement export
-- [ ] Withdrawal requests (presets + custom amount)
-- [ ] Notification preferences
-
-### Companies / Advertisers
-- [ ] Company profile (legal info, sector, contact, brand color, logo)
-- [ ] Company status lifecycle (pending → validated/rejected)
-- [ ] Company KYC (KBIS, beneficial owner, payment-method legal check) — deferred
-- [ ] Company KYC status field — deferred
-- [ ] Team management (invite by email, roles: admin/editor/viewer, last seen, pending invites)
-- [ ] Asset library (visuals, videos, logos, briefs with usage tracking)
-- [ ] Billing profile + payment methods (Stripe)
-- [ ] Invoice history per company
-- [ ] Account balance + MRR + total spend
-- [ ] Company settings + preferences
-
-### Campaigns
-- [ ] Campaign lifecycle (draft → upcoming → active → completed)
-- [ ] Two campaign types: Flocage (vehicle wraps) + Borne (kiosk ads)
-- [ ] 3-step creation wizard data (brief, targeting, budget tier BOOST/GROWTH/LEADER)
-- [ ] Targeting (cities, zones, dates, km target or borne count)
-- [ ] Visual upload
-- [ ] Driver assignment / unassignment
-- [ ] Borne assignment for borne-type campaigns
-- [ ] Driver acceptance flow + capacity check
-- [ ] Tracking mode (GPS auto vs manual)
-- [ ] Tracking events ingestion (GPS pings from mobile, manual check-ins)
-- [ ] Progress calculation (km done vs target, drivers assigned vs needed)
-- [ ] Campaign performance metrics (impressions, reach, km, hours)
-- [ ] Impressions timeline
-- [ ] Per-company campaign filtering for advertiser portal
-
-### Partners
-- [ ] Partner profile (business info, manager, address)
-- [ ] Partner status lifecycle (pending → validated/rejected)
-- [ ] Partner KYC (business registration, banking details for payouts) — deferred
-- [ ] Partner KYC status field — deferred
-- [ ] Block partner payouts until KYC verified — deferred
-
-### Bornes / Terminals (Partner Hardware)
-- [ ] Terminal registry with map coords + venue type (bar/hotel/nightclub/etc.)
-- [ ] Terminal status (online/maintenance/offline) + uptime tracking
-- [ ] Spray counter + daily usage
-- [ ] Last sync + heartbeat
-- [ ] Maintenance scheduling
-- [ ] Stock inventory (5 scent types, level %, capacity, daily use, refill ETA)
-- [ ] Stock alerts (Faible / Rupture)
-- [ ] Stock orders from partner
-- [ ] Refill logging
-- [ ] Ad playback schedule per terminal (live, scheduled, frequency, time windows)
-- [ ] Ad impression counter per terminal
-- [ ] Partner ad-issue reports
-- [ ] Terminal revenue split (sprays revenue + ads revenue share)
-- [ ] Revenue history + payout schedule
-- [ ] Monthly target tracking
-
-### Validations Queue (Admin)
-- [ ] Combined queue (pending drivers + pending companies)
-- [ ] Per-submission detail with documents
-- [ ] Approve / reject / request more info actions
-- [ ] Notify submitter on decision
-- [ ] KYC review queue (driver + company + partner) — deferred
-
-### Finances (Admin)
-- [ ] Invoices (create, edit, send, mark paid, PDF, statuses: payée/envoyée/en retard/brouillon)
-- [ ] Driver commissions (per campaign, per km, batch payout)
-- [ ] Internal expenses ledger (categories: fourniture / sous-traitance / infrastructure / logistique)
-- [ ] Finance KPIs (MRR, collections, pending, commissions due)
-- [ ] Stripe webhooks for payment confirmation
-- [ ] Withdrawal processing (driver requests → payout)
-
-### Notifications
-- [ ] In-app notifications per user (types: campaign, payment, validation, system, borne)
-- [ ] Unread count
-- [ ] Mark read / read-all / archive / delete
-- [ ] Email channel
-- [ ] Push channel (Expo tokens for mobile)
-- [ ] Realtime push to active sessions
-- [ ] Triggered by domain events (new campaign match for driver, document validated, invoice paid, stock alert, ad reported, terminal offline, validation decision)
-
-### Reports (Admin)
-- [ ] Monthly summary report
-- [ ] Accounting export (invoices, commissions, expenses)
-- [ ] Borne performance report
-- [ ] Driver activity report
-- [ ] Advertiser engagement report
-- [ ] GDPR audit report
-- [ ] Async generation + download (PDF/CSV)
-
-### Dashboard / KPIs
-- [ ] Admin dashboard aggregates (MRR + trend, active campaigns, validated drivers, pending counts, borne fleet health, validation queue, city distribution)
-- [ ] Revenue chart (Flocage vs Borne stacked, 30/90/365 day)
-- [ ] Advertiser dashboard (own impressions, % vs goal, sparkline, active campaigns, team activity, billing summary)
-
-### Search
-- [ ] Global search across campaigns, drivers, companies, bornes (cmd+K palette)
-
-### Settings
-- [ ] User-level settings (notification toggles, email prefs)
-- [ ] Company-level settings (advertiser portal)
-- [ ] Global platform settings (admin)
-
-### Compliance
-- [ ] GDPR data export per user
-- [ ] GDPR account deletion
-- [ ] Audit trail of state changes (approvals, rejections, payments, campaign edits)
-- [ ] Document retention policy
-
 ---
 
-## Mobile App Integration (consumes Web Backend)
+## Cross-cutting (foundation)
 
-### Replace mock data with real fetches
-- [ ] Drop `mocks/data.ts` + `mocks/partner.ts` from runtime
-- [ ] Refactor `context/DataContext.tsx` to query hooks
-- [ ] Refactor `context/AuthContext.tsx` to real auth + hydrate from `/me`
+### X1 — RBAC + route guards
+- [ ] Server-side role guards per endpoint
+- [ ] Mobile mutation block for advertiser + partner roles
+- [ ] Helper for "current user must be driver/advertiser/partner/admin"
+- [ ] Status check (validated only) on protected routes
 
-### Auth flows
-- [x] Real login (email + password)
-- [x] Real register-driver 4-step submission
-- [x] Real register-advertiser flow
-- [x] Real register-partner flow
-- [x] Pending screen polls user status until validated (15s interval)
-- [x] Forgot/reset password screens (OTP)
-- [x] Email verification screen (OTP)
-- [x] Change password wired
-- [x] Logout clears session
+### X2 — File upload infrastructure
+- [ ] Storage backend (S3 or local + signed URLs)
+- [ ] Multipart upload endpoint
+- [ ] File metadata collection (owner, mime, size, scope: doc/asset/visual)
+- [ ] Image resize + thumbnail
+- [ ] Mobile upload helper (camera/file picker → multipart)
+- [ ] Web upload helper (dropzone + progress)
 
-### Driver
-- [ ] Home (driver, stats, active + available campaigns, unread count)
-- [ ] Browse campaigns with filters
-- [ ] Campaign detail + accept action
-- [ ] My campaigns
-- [ ] Stats with period selector
-- [ ] Payments history + transaction detail
-- [ ] Withdraw amount submission
-- [ ] Statement download
-- [ ] Documents upload (camera / file picker → multipart)
-- [ ] Cars CRUD
-- [ ] Edit profile
-- [ ] Notification preferences + email toggle
-- [ ] Notifications list with read/archive/delete
-- [ ] Settings + support contact form
-- [ ] GPS background tracking task (location pings → tracking events)
-- [ ] Manual check-in mode for non-GPS campaigns
+### X3 — Notification engine
+- [ ] In-app notification model (per user, type, read/archived)
+- [ ] Unread count endpoint
+- [ ] Mark read / read-all / archive / delete
+- [ ] Email channel (nodemailer)
+- [ ] Push channel (Expo push tokens, register/unregister)
+- [ ] Realtime push to active sessions (SSE or polling)
+- [ ] Domain event triggers (campaign match, doc validated, invoice paid, stock alert, ad reported, terminal offline, validation decision)
 
-### Advertiser (mobile = read-only companion)
-- [ ] Home dashboard (own KPIs) — read-only
-- [ ] Campaigns list (own only) with filter — read-only
-- [ ] Stats / performance — read-only
-- [ ] Profile view (edit on web only)
-- [ ] Notifications
-- [ ] Hide/remove create-campaign + assign-driver UI on mobile (web-only)
+### X4 — Audit trail + GDPR
+- [ ] Audit log collection (actor, action, target, before/after, timestamp)
+- [ ] GDPR data export per user
+- [ ] GDPR account deletion
+- [ ] Document retention policy
 
-### Partner (mobile = read-only companion)
-- [ ] Home (terminal status, stock summary, live ads, notifs) — read-only
-- [ ] Stock screen view (no order action — web only)
-- [ ] Ads screen view (no report action — web only)
-- [ ] Revenue screen (history, transactions) — read-only, no statement export
-- [ ] Notifications with filters (all/unread/stock/ops)
-- [ ] Profile view (edit on web only)
-- [ ] Hide/remove all mutation buttons on partner mobile screens
-
-### Cross-cutting mobile UX
+### X5 — Mobile UX cross-cutting
 - [ ] Loading skeletons on data screens
 - [ ] Pull-to-refresh
 - [ ] Error toasts on mutations
 - [ ] Offline cache + retry
-- [ ] Image/file upload helpers
 - [ ] Foreground push banner
-- [ ] Remove role quick-access buttons in login (dev-only)
+- [ ] Drop `mocks/data.ts` + `mocks/partner.ts` from runtime
+- [ ] Refactor `context/DataContext.tsx` to query hooks
+
+---
+
+## Auth & Identity (Better Auth + MongoDB)
+
+- [x] User accounts with roles: admin, advertiser, driver, partner, team_member
+- [x] Driver self-registration (4-step)
+- [x] Company self-registration (creates Better Auth organization)
+- [x] Partner registration
+- [x] Login / logout
+- [x] Token refresh
+- [x] Password reset via email OTP
+- [x] Change password
+- [x] Current-user profile lookup (`/api/me`)
+- [x] Pending state for newly-registered users
+- [x] Email verification via OTP
+- [x] Admin seed script
+- [x] Real login + register flows on mobile
+- [x] Pending screen polls user status (15s)
+- [x] Forgot/reset/verify-email screens
+- [x] Logout clears session
+- [ ] Admin force-logout / ban / unban UI
+- [ ] Team member invite acceptance UI
+- [ ] SMTP credentials in prod
+- [ ] KYC (driver + company + partner) — deferred
+
+---
+
+## Driver
+
+### D1 — Campaigns (browse, accept, mine)
+- Backend
+  - [x] Campaign collection + lifecycle (draft → upcoming → active → completed)
+  - [x] List available campaigns for driver (matching city + capacity)
+  - [x] Campaign detail
+  - [x] Accept action (capacity check, link driver to campaign)
+  - [x] My campaigns (active + completed for current driver)
+  - [x] Driver acceptance audit
+- Mobile
+  - [x] Home — active campaign card + opportunities horizontal list
+  - [x] Browse campaigns screen with filters (city, type, reward range)
+  - [x] Campaign detail screen + accept action
+  - [x] My campaigns screen
+- Web (admin view)
+  - [x] Campaigns list filtered by driver
+
+### D2 — Stats + earnings
+- Backend
+  - [ ] Driver stats aggregate (monthly earnings, total earnings, campaigns done, rating, total km, growth %)
+  - [ ] Period selector aggregation (week / month / 3mo / year)
+- Mobile
+  - [ ] Home stats (monthly earnings hero + mini stats)
+  - [ ] Stats screen with period selector
+- Web (admin view)
+  - [ ] Driver detail stats panel
+
+### D3 — Payments + withdrawals + statements
+- Backend
+  - [ ] Payment history per driver
+  - [ ] Transaction detail
+  - [ ] Withdrawal request submission (presets + custom)
+  - [ ] Withdrawal processing (admin → payout)
+  - [ ] Statement generation (PDF, monthly)
+- Mobile
+  - [ ] Payments history screen
+  - [ ] Transaction detail screen
+  - [ ] Withdraw screen (presets + custom amount)
+  - [ ] Statement download
+- Web (admin)
+  - [ ] Withdrawal queue + process action
+
+### D4 — Documents upload + validation
+- Backend
+  - [ ] Document model (license, registration, insurance, photos)
+  - [ ] Upload endpoint (multipart) — depends on X2
+  - [ ] Validation workflow (admin approve/reject per doc)
+  - [ ] `documentsUploaded` flag on driver
+- Mobile
+  - [ ] Documents screen — list per type with status
+  - [ ] Upload via camera / file picker
+- Web (admin)
+  - [ ] Document review queue + approve/reject
+
+### D5 — Vehicles CRUD
+- Backend
+  - [ ] Vehicle collection (driverId, make, model, year, plate, type, inspection)
+  - [ ] CRUD endpoints (list, create, update, delete)
+- Mobile
+  - [ ] My cars screen (list + add/edit/delete)
+- Web (admin)
+  - [ ] Driver detail vehicles list
+
+### D6 — Profile edit
+- Backend
+  - [ ] Update driver profile endpoint (identity, contact, city)
+- Mobile
+  - [ ] Edit profile screen
+- Web (admin)
+  - [ ] Driver detail edit
+
+### D7 — Notifications + preferences
+- Backend (uses X3)
+  - [ ] Notification list filtered to driver
+  - [ ] Notification prefs (email toggle, push toggle, per-type)
+- Mobile
+  - [ ] Notifications list with read/archive/delete
+  - [ ] Notification email preferences screen
+- Web
+  - [ ] Notification center for admin
+
+### D8 — Settings + support
+- Backend
+  - [ ] Support contact form submission (creates ticket)
+- Mobile
+  - [ ] Settings screen
+  - [ ] Support contact form
+- Web (admin)
+  - [ ] Support ticket queue
+
+### D9 — GPS tracking + manual check-in
+- Backend
+  - [ ] Tracking events ingestion (GPS pings + manual check-ins)
+  - [ ] Progress calculation (km done vs target)
+- Mobile
+  - [ ] Background location task (start/stop on campaign accept/complete)
+  - [ ] Manual check-in mode for non-GPS campaigns
+- Web (admin)
+  - [ ] Tracking events viewer per campaign
+
+---
+
+## Advertiser
+
+### A1 — Company profile + brand
+- Backend
+  - [ ] Update company profile (legal info, sector, contact, brand color, logo)
+- Mobile (read-only)
+  - [ ] Profile view
+- Web
+  - [ ] Edit profile + brand
+
+### A2 — Team management
+- Backend
+  - [ ] Invite by email (Better Auth organization plugin)
+  - [ ] Roles: admin / editor / viewer
+  - [ ] Last-seen tracking
+  - [ ] Pending invites list
+  - [ ] Invite acceptance screen
+- Web
+  - [ ] Team page (list, invite, remove, role change)
+
+### A3 — Asset library
+- Backend (uses X2)
+  - [ ] Asset model (visuals, videos, logos, briefs)
+  - [ ] Usage tracking per asset
+- Web
+  - [ ] Asset library page (upload, list, delete, usage)
+
+### A4 — Campaign creation wizard
+- Backend
+  - [ ] 3-step wizard data model (brief, targeting, budget tier BOOST/GROWTH/LEADER)
+  - [ ] Two campaign types: Flocage (vehicle wraps) + Borne (kiosk ads)
+  - [ ] Targeting (cities, zones, dates, km target / borne count)
+  - [ ] Visual upload — depends on X2
+  - [ ] Draft + publish flow
+- Web
+  - [ ] 3-step creation wizard
+  - [ ] Draft list + edit
+
+### A5 — Campaign list + detail (own only)
+- Backend
+  - [ ] List filtered by companyId
+  - [ ] Detail with metrics + assigned drivers
+  - [ ] Driver assignment / unassignment (Flocage)
+  - [ ] Borne assignment (Borne type)
+- Mobile (read-only)
+  - [ ] Campaigns list — own only
+  - [ ] Campaign detail view
+- Web
+  - [ ] Campaigns list + detail + assign action
+
+### A6 — Performance + impressions
+- Backend
+  - [ ] Campaign performance metrics (impressions, reach, km, hours)
+  - [ ] Impressions timeline
+  - [ ] Sparkline data
+- Mobile (read-only)
+  - [ ] Stats screen
+- Web
+  - [ ] Performance dashboard per campaign
+
+### A7 — Billing + invoices + payment methods
+- Backend
+  - [ ] Billing profile per company
+  - [ ] Stripe payment methods
+  - [ ] Invoice history
+  - [ ] Account balance + MRR + total spend
+  - [ ] Stripe webhooks
+- Web
+  - [ ] Billing page (methods, invoices, balance)
+
+### A8 — Notifications (advertiser)
+- Backend (uses X3)
+  - [ ] Filter to companyId notifications
+- Mobile (read-only)
+  - [ ] Notifications view
+- Web
+  - [ ] Notifications center
+
+---
+
+## Partner
+
+### P1 — Partner profile
+- Backend
+  - [ ] Update partner profile (business, manager, address, hours)
+- Mobile (read-only)
+  - [ ] Profile view
+- Web
+  - [ ] Edit profile
+
+### P2 — Terminals (bornes)
+- Backend
+  - [ ] Terminal registry (coords, venue type, partner)
+  - [ ] Status (online/maintenance/offline) + uptime
+  - [ ] Heartbeat ingestion + last sync
+  - [ ] Maintenance scheduling
+- Mobile (read-only)
+  - [ ] Home — terminal status summary
+- Web
+  - [ ] Terminal list + map + status detail
+
+### P3 — Stock
+- Backend
+  - [ ] Stock inventory (5 scent types: level %, capacity, daily use, refill ETA)
+  - [ ] Spray counter + daily usage
+  - [ ] Stock alerts (Faible / Rupture)
+  - [ ] Stock orders from partner
+  - [ ] Refill logging
+- Mobile (read-only)
+  - [ ] Stock screen view
+- Web
+  - [ ] Stock screen + order action + refill log
+
+### P4 — Ads
+- Backend
+  - [ ] Ad playback schedule per terminal (live, scheduled, frequency, time windows)
+  - [ ] Ad impression counter per terminal
+  - [ ] Partner ad-issue reports
+- Mobile (read-only)
+  - [ ] Ads screen view
+- Web
+  - [ ] Ads schedule + report action + impressions
+
+### P5 — Revenue
+- Backend
+  - [ ] Terminal revenue split (sprays + ads share)
+  - [ ] Revenue history + payout schedule
+  - [ ] Monthly target tracking
+  - [ ] Statement export
+- Mobile (read-only)
+  - [ ] Revenue screen (history, transactions)
+- Web
+  - [ ] Revenue page + payout schedule + statement export
+
+### P6 — Notifications (partner)
+- Backend (uses X3)
+  - [ ] Filter to partnerId notifications
+- Mobile (read-only)
+  - [ ] Notifications with filters (all/unread/stock/ops)
+- Web
+  - [ ] Notifications center
+
+---
+
+## Admin (web only)
+
+### AD1 — Validations queue
+- Backend
+  - [ ] Combined queue (pending drivers + companies + partners)
+  - [ ] Per-submission detail with documents
+  - [ ] Approve / reject / request more info
+  - [ ] Notify submitter on decision
+- Web
+  - [ ] Validation queue page + per-item detail
+
+### AD2 — Finances
+- Backend
+  - [ ] Invoices CRUD (statuses: payée / envoyée / en retard / brouillon)
+  - [ ] Driver commissions (per campaign, per km, batch payout)
+  - [ ] Internal expenses ledger (categories: fourniture / sous-traitance / infrastructure / logistique)
+  - [ ] Finance KPIs (MRR, collections, pending, commissions due)
+- Web
+  - [ ] Finances page (invoices, commissions, expenses, KPIs)
+
+### AD3 — Stripe + payment processing
+- Backend
+  - [ ] Stripe webhook handler (payment confirmation, dispute, refund)
+  - [ ] Payment status sync to invoices
+
+### AD4 — Reports
+- Backend
+  - [ ] Async generation (PDF/CSV)
+  - [ ] Monthly summary
+  - [ ] Accounting export (invoices, commissions, expenses)
+  - [ ] Borne performance report
+  - [ ] Driver activity report
+  - [ ] Advertiser engagement report
+  - [ ] GDPR audit report
+- Web
+  - [ ] Reports page + download
+
+### AD5 — Dashboard / KPIs
+- Backend
+  - [ ] Admin aggregates (MRR + trend, active campaigns, validated drivers, pending counts, borne fleet health, validation queue, city distribution)
+  - [ ] Revenue chart data (Flocage vs Borne stacked, 30/90/365 day)
+  - [ ] Advertiser dashboard data (own impressions, % vs goal, sparkline, active campaigns, team activity, billing summary)
+- Web
+  - [ ] Admin dashboard
+  - [ ] Advertiser dashboard
+
+### AD6 — Search palette
+- Backend
+  - [ ] Global search (campaigns, drivers, companies, bornes)
+- Web
+  - [ ] cmd+K palette
+
+### AD7 — Users management
+- Backend
+  - [ ] Admin force-logout (Better Auth admin plugin)
+  - [ ] Ban / unban
+- Web
+  - [ ] Users page with actions
+
+### AD8 — Global settings
+- Backend
+  - [ ] Platform settings collection
+- Web
+  - [ ] Settings page (admin)

@@ -8,7 +8,8 @@ import {
   Dimensions,
   Image,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -64,7 +65,13 @@ type ServiceItem = {
 export default function DriverHomeScreen() {
   const insets = useSafeAreaInsets();
   const { currentDriver } = useAuth();
-  const { driverStats, campaigns, unreadCount } = useData();
+  const { driverStats, campaigns, unreadCount, refreshCampaigns } = useData();
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshCampaigns();
+    }, [refreshCampaigns]),
+  );
 
   const driverName = currentDriver?.firstName ?? 'Chauffeur';
   const driverId = currentDriver?.id ?? 'd1';

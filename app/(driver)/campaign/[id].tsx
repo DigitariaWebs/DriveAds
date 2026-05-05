@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -107,16 +107,48 @@ const formatDate = (iso: string) => {
 };
 
 // ─── Screen ────────────────────────────────────────────────
+import type { Campaign } from '../../../constants/Types';
+import { fetchCampaignDetail } from '../../../lib/campaigns-api';
+
 export default function CampaignDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const { currentDriver } = useAuth();
-  const { campaigns, acceptCampaign } = useData();
-
-  const campaign = campaigns.find((c) => c.id === id);
+  const { acceptCampaign } = useData();
   const driverId = currentDriver?.id ?? 'd1';
 
   const heroNoise = useMemo(() => generateNoise(200, width, 440), []);
+
+  const [campaign, setCampaign] = useState<Campaign | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [accepting, setAccepting] = useState(false);
+
+  const load = useCallback(async () => {
+    if (!id) return;
+    setLoading(true);
+    try {
+      const c = await fetchCampaignDetail(id, driverId);
+      setCampaign(c);
+    } catch {
+      setCampaign(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [id, driverId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  if (loading) {
+    return (
+      <View style={[styles.screen, { paddingTop: insets.top }]}>
+        <View style={styles.center}>
+          <Text style={styles.emptyText}>Chargement…</Text>
+        </View>
+      </View>
+    );
+  }
 
   if (!campaign) {
     return (
@@ -143,11 +175,18 @@ export default function CampaignDetailScreen() {
         { text: 'Annuler', style: 'cancel' },
         {
           text: 'Confirmer',
-          onPress: () => {
-            acceptCampaign(campaign.id, driverId);
-            Alert.alert('Succès', 'Mission acceptée avec succès !', [
-              { text: 'OK', onPress: () => router.back() },
-            ]);
+          onPress: async () => {
+            setAccepting(true);
+            try {
+              await acceptCampaign(campaign.id);
+              Alert.alert('Succès', 'Mission acceptée avec succès !', [
+                { text: 'OK', onPress: () => router.back() },
+              ]);
+            } catch (e: any) {
+              Alert.alert('Erreur', e?.message ?? 'Acceptation impossible.');
+            } finally {
+              setAccepting(false);
+            }
           },
         },
       ],
@@ -437,12 +476,17 @@ export default function CampaignDetailScreen() {
             <Text style={styles.ctaSecondaryText}>Refuser</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={styles.ctaPrimary}
+            style={[styles.ctaPrimary, accepting && { opacity: 0.6 }]}
             onPress={handleAccept}
             activeOpacity={0.85}
+            disabled={accepting}
           >
-            <Text style={styles.ctaPrimaryText}>Accepter la mission</Text>
-            <Feather name="arrow-right" size={16} color={Colors.white} />
+            <Text style={styles.ctaPrimaryText}>
+              {accepting ? 'Acceptation…' : 'Accepter la mission'}
+            </Text>
+            {!accepting && (
+              <Feather name="arrow-right" size={16} color={Colors.white} />
+            )}
           </TouchableOpacity>
         </View>
       )}

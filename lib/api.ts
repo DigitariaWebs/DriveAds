@@ -13,7 +13,10 @@ const baseURL =
 const secureStorage = {
   getItem: (key: string) => SecureStore.getItem(key),
   setItem: (key: string, value: string) => SecureStore.setItem(key, value),
-  deleteItem: (key: string) => SecureStore.deleteItem(key),
+  // Better-auth expo client clears via setItem("{}"), no deleteItem needed.
+  deleteItem: (key: string) => {
+    SecureStore.deleteItemAsync(key);
+  },
 };
 
 export const authClient = createAuthClient({

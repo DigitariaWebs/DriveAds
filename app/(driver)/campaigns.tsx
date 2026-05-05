@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,8 +8,9 @@ import {
   StyleSheet,
   Dimensions,
   Image,
+  RefreshControl,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -51,34 +52,80 @@ const generateNoise = (count: number, w: number, h: number): NoiseDot[] => {
 };
 
 // ─── Filters ───────────────────────────────────────────────
-type FilterKey = 'all' | 'available' | 'active' | 'completed';
+type StatusFilter = 'all' | 'available' | 'active' | 'completed';
+type TrackingFilter = 'all' | 'gps' | 'manual';
+type RewardFilter = 'all' | 'lt300' | '300to450' | 'gte450';
 
-const FILTERS: { key: FilterKey; label: string }[] = [
+const STATUS_FILTERS: { key: StatusFilter; label: string }[] = [
   { key: 'all', label: 'Toutes' },
   { key: 'available', label: 'Disponibles' },
   { key: 'active', label: 'En cours' },
   { key: 'completed', label: 'Terminées' },
 ];
 
+const TRACKING_FILTERS: { key: TrackingFilter; label: string }[] = [
+  { key: 'all', label: 'Tout suivi' },
+  { key: 'gps', label: 'GPS' },
+  { key: 'manual', label: 'Manuel' },
+];
+
+const REWARD_FILTERS: { key: RewardFilter; label: string }[] = [
+  { key: 'all', label: 'Toutes rémunérations' },
+  { key: 'lt300', label: '< 300€' },
+  { key: '300to450', label: '300–450€' },
+  { key: 'gte450', label: '≥ 450€' },
+];
+
+function rewardMatches(value: number, key: RewardFilter): boolean {
+  switch (key) {
+    case 'lt300':
+      return value < 300;
+    case '300to450':
+      return value >= 300 && value < 450;
+    case 'gte450':
+      return value >= 450;
+    default:
+      return true;
+  }
+}
+
 // ─── Screen ────────────────────────────────────────────────
 export default function DriverCampaignsScreen() {
   const insets = useSafeAreaInsets();
-  const { campaigns } = useData();
-  const [filter, setFilter] = useState<FilterKey>('all');
+  const { campaigns, campaignsLoading, refreshCampaigns } = useData();
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [trackingFilter, setTrackingFilter] = useState<TrackingFilter>('all');
+  const [rewardFilter, setRewardFilter] = useState<RewardFilter>('all');
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshCampaigns();
+    }, [refreshCampaigns]),
+  );
 
   const heroNoise = useMemo(() => generateNoise(200, width, 280), []);
 
-  const filtered = campaigns.filter((c) => {
-    if (filter === 'all') return true;
-    return c.status === filter;
-  });
+  const filtered = useMemo(
+    () =>
+      campaigns.filter((c) => {
+        if (statusFilter !== 'all' && c.status !== statusFilter) return false;
+        if (trackingFilter !== 'all' && c.trackingMode !== trackingFilter)
+          return false;
+        if (!rewardMatches(c.reward, rewardFilter)) return false;
+        return true;
+      }),
+    [campaigns, statusFilter, trackingFilter, rewardFilter],
+  );
 
-  const counts = {
-    all: campaigns.length,
-    available: campaigns.filter((c) => c.status === 'available').length,
-    active: campaigns.filter((c) => c.status === 'active').length,
-    completed: campaigns.filter((c) => c.status === 'completed').length,
-  };
+  const counts = useMemo(
+    () => ({
+      all: campaigns.length,
+      available: campaigns.filter((c) => c.status === 'available').length,
+      active: campaigns.filter((c) => c.status === 'active').length,
+      completed: campaigns.filter((c) => c.status === 'completed').length,
+    }),
+    [campaigns],
+  );
 
   return (
     <View style={styles.screen}>
@@ -90,6 +137,13 @@ export default function DriverCampaignsScreen() {
           { paddingBottom: TAB_BAR_HEIGHT + TAB_BAR_BOTTOM + 24 },
         ]}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={campaignsLoading}
+            onRefresh={refreshCampaigns}
+            tintColor={Colors.navy}
+          />
+        }
         ListHeaderComponent={
           <>
             {/* ─── Hero ────────────────────────────────────── */}
@@ -166,22 +220,22 @@ export default function DriverCampaignsScreen() {
                 <Text style={styles.heroSubtitle}>
                   {filtered.length} campagne
                   {filtered.length > 1 ? 's' : ''}
-                  {filter !== 'all'
-                    ? ` · ${FILTERS.find((f) => f.key === filter)?.label.toLowerCase()}`
+                  {statusFilter !== 'all'
+                    ? ` · ${STATUS_FILTERS.find((f) => f.key === statusFilter)?.label.toLowerCase()}`
                     : ''}
                 </Text>
               </View>
             </View>
 
-            {/* ─── Filter chips ────────────────────────────── */}
+            {/* ─── Status chips ───────────────────────────── */}
             <View style={styles.filtersWrap}>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.filterRow}
               >
-                {FILTERS.map((f) => {
-                  const active = filter === f.key;
+                {STATUS_FILTERS.map((f) => {
+                  const active = statusFilter === f.key;
                   const count = counts[f.key];
                   return (
                     <TouchableOpacity
@@ -190,7 +244,7 @@ export default function DriverCampaignsScreen() {
                         styles.filterChip,
                         active && styles.filterChipActive,
                       ]}
-                      onPress={() => setFilter(f.key)}
+                      onPress={() => setStatusFilter(f.key)}
                       activeOpacity={0.75}
                     >
                       <Text
@@ -216,6 +270,62 @@ export default function DriverCampaignsScreen() {
                           {count}
                         </Text>
                       </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+
+            {/* ─── Tracking + reward chips ───────────────── */}
+            <View style={styles.subFiltersWrap}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.filterRow}
+              >
+                {TRACKING_FILTERS.map((f) => {
+                  const active = trackingFilter === f.key;
+                  return (
+                    <TouchableOpacity
+                      key={`tk-${f.key}`}
+                      style={[
+                        styles.subFilterChip,
+                        active && styles.subFilterChipActive,
+                      ]}
+                      onPress={() => setTrackingFilter(f.key)}
+                      activeOpacity={0.75}
+                    >
+                      <Text
+                        style={[
+                          styles.subFilterText,
+                          active && styles.subFilterTextActive,
+                        ]}
+                      >
+                        {f.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+                {REWARD_FILTERS.map((f) => {
+                  const active = rewardFilter === f.key;
+                  return (
+                    <TouchableOpacity
+                      key={`rw-${f.key}`}
+                      style={[
+                        styles.subFilterChip,
+                        active && styles.subFilterChipActive,
+                      ]}
+                      onPress={() => setRewardFilter(f.key)}
+                      activeOpacity={0.75}
+                    >
+                      <Text
+                        style={[
+                          styles.subFilterText,
+                          active && styles.subFilterTextActive,
+                        ]}
+                      >
+                        {f.label}
+                      </Text>
                     </TouchableOpacity>
                   );
                 })}
@@ -378,6 +488,32 @@ const styles = StyleSheet.create({
   },
   filterCountTextActive: {
     color: Colors.white,
+  },
+
+  subFiltersWrap: {
+    paddingBottom: 8,
+  },
+  subFilterChip: {
+    paddingHorizontal: 12,
+    height: 28,
+    borderRadius: 100,
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.gray100,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  subFilterChipActive: {
+    backgroundColor: Colors.navyTint,
+    borderColor: Colors.navySoft,
+  },
+  subFilterText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 11.5,
+    color: Colors.gray500,
+  },
+  subFilterTextActive: {
+    color: Colors.navy,
   },
 
   cardRow: {
