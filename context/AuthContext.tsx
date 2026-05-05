@@ -56,11 +56,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Wait for expo client to hydrate session from SecureStore before fetching /api/me.
       // Without this, getCookie() returns empty on cold start → 401 → false unauthenticated.
       const session = await authClient.getSession();
+      console.log('[auth] getSession full:', JSON.stringify(session));
       if (!session?.data?.session) {
+        console.log('[auth] no session → unauthenticated');
         setState({ ...initialState, isLoading: false });
         return;
       }
       const me = await apiFetch<MeResponse>('/api/me');
+      console.log('[auth] /api/me result:', JSON.stringify(me?.user));
       const role = (['driver', 'advertiser', 'partner'].includes(me.user.role)
         ? (me.user.role as UserRole)
         : null);
@@ -74,7 +77,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         currentCompany: me.company,
         currentPartner: me.partner,
       });
-    } catch {
+    } catch (e) {
+      console.log('[auth] hydrate error:', e);
       setState({ ...initialState, isLoading: false });
     }
   }, []);
