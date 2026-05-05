@@ -64,13 +64,14 @@ type ServiceItem = {
 // ─── Screen ────────────────────────────────────────────────
 export default function DriverHomeScreen() {
   const insets = useSafeAreaInsets();
-  const { currentDriver } = useAuth();
-  const { driverStats, campaigns, unreadCount, refreshCampaigns } = useData();
+  const { currentDriver, currentDriverStats, refresh } = useAuth();
+  const { campaigns, unreadCount, refreshCampaigns } = useData();
 
   useFocusEffect(
     useCallback(() => {
       refreshCampaigns();
-    }, [refreshCampaigns]),
+      refresh();
+    }, [refreshCampaigns, refresh]),
   );
 
   const driverName = currentDriver?.firstName ?? 'Chauffeur';
@@ -239,12 +240,25 @@ export default function DriverHomeScreen() {
             <Text style={styles.earningsLabel}>Revenus ce mois</Text>
             <View style={styles.earningsRow}>
               <Text style={styles.earningsAmount}>
-                {driverStats.monthlyEarnings} €
+                {(currentDriverStats?.monthlyEarnings ?? 0).toLocaleString()} €
               </Text>
               <View style={styles.growthPill}>
-                <Feather name="trending-up" size={12} color={Colors.success} />
+                <Feather
+                  name={
+                    (currentDriverStats?.growthPercent ?? 0) >= 0
+                      ? 'trending-up'
+                      : 'trending-down'
+                  }
+                  size={12}
+                  color={
+                    (currentDriverStats?.growthPercent ?? 0) >= 0
+                      ? Colors.success
+                      : '#DC2626'
+                  }
+                />
                 <Text style={styles.growthText}>
-                  +{driverStats.growthPercent}%
+                  {(currentDriverStats?.growthPercent ?? 0) >= 0 ? '+' : ''}
+                  {currentDriverStats?.growthPercent ?? 0}%
                 </Text>
               </View>
             </View>
@@ -254,14 +268,14 @@ export default function DriverHomeScreen() {
           <View style={styles.miniStatsRow}>
             <View style={styles.miniStat}>
               <Text style={styles.miniStatValue}>
-                {driverStats.totalEarnings.toLocaleString()} €
+                {(currentDriver?.totalEarnings ?? 0).toLocaleString()} €
               </Text>
               <Text style={styles.miniStatLabel}>Total gagné</Text>
             </View>
             <View style={styles.miniStatDivider} />
             <View style={styles.miniStat}>
               <Text style={styles.miniStatValue}>
-                {formatKm(driverStats.totalKm)}
+                {formatKm(currentDriver?.totalKm ?? 0)}
               </Text>
               <Text style={styles.miniStatLabel}>Kilomètres</Text>
             </View>
@@ -269,7 +283,9 @@ export default function DriverHomeScreen() {
             <View style={styles.miniStat}>
               <View style={styles.ratingRow}>
                 <Feather name="star" size={12} color="#F59E0B" />
-                <Text style={styles.miniStatValue}>{driverStats.rating}</Text>
+                <Text style={styles.miniStatValue}>
+                  {currentDriver?.rating ?? 0}
+                </Text>
               </View>
               <Text style={styles.miniStatLabel}>Note</Text>
             </View>

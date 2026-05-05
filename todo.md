@@ -97,13 +97,14 @@
 
 ### D2 — Stats + earnings
 - Backend
-  - [ ] Driver stats aggregate (monthly earnings, total earnings, campaigns done, rating, total km, growth %)
-  - [ ] Period selector aggregation (week / month / 3mo / year)
+  - [x] Driver stats aggregate (monthly earnings, total earnings, campaigns done, rating, total km, growth %)
+  - [x] Period selector aggregation (week / month / 3mo / year)
+  - [ ] Advertiser-driven driver rating (rate driver post-campaign) — deferred
 - Mobile
-  - [ ] Home stats (monthly earnings hero + mini stats)
-  - [ ] Stats screen with period selector
+  - [x] Home stats (monthly earnings hero + mini stats)
+  - [x] Stats screen with period selector
 - Web (admin view)
-  - [ ] Driver detail stats panel
+  - [x] Driver detail stats panel
 
 ### D3 — Payments + withdrawals + statements
 - Backend

@@ -3,6 +3,12 @@ import { UserRole, Driver, Company, Partner, ValidationStatus } from '../constan
 import { authClient } from '../lib/api';
 import { apiFetch } from '../lib/fetcher';
 
+type DriverStatsExtras = {
+  monthlyEarnings: number;
+  growthPercent: number;
+  activeCampaigns: number;
+};
+
 type MeResponse = {
   user: {
     id: string;
@@ -14,6 +20,7 @@ type MeResponse = {
     emailVerified: boolean;
   };
   driver: Driver | null;
+  driverStats: DriverStatsExtras | null;
   company: Company | null;
   partner: Partner | null;
 };
@@ -25,6 +32,7 @@ type AuthState = {
   emailVerified: boolean;
   userId: string | null;
   currentDriver: Driver | null;
+  currentDriverStats: DriverStatsExtras | null;
   currentCompany: Company | null;
   currentPartner: Partner | null;
 };
@@ -44,6 +52,7 @@ const initialState: AuthState = {
   emailVerified: false,
   userId: null,
   currentDriver: null,
+  currentDriverStats: null,
   currentCompany: null,
   currentPartner: null,
 };
@@ -74,6 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         emailVerified: me.user.emailVerified,
         userId: me.user.id,
         currentDriver: me.driver,
+        currentDriverStats: me.driverStats,
         currentCompany: me.company,
         currentPartner: me.partner,
       });

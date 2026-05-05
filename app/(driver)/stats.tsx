@@ -1,38 +1,108 @@
-import { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
-import { router } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  StyleSheet,
+  RefreshControl,
+} from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/Colors';
 import { FontFamily } from '../../constants/Typography';
 import { Shadows } from '../../constants/Spacing';
 import { TAB_BAR_HEIGHT, TAB_BAR_BOTTOM } from '../../constants/TabBarStyle';
+import {
+  fetchMyStats,
+  type StatsPeriod,
+  type StatsResponse,
+} from '../../lib/stats-api';
 
-const PERIODS = ['7 jours', '30 jours', '3 mois', '1 an'];
-
-const STATS_GRID = [
-  { label: 'Campagnes complétées', value: '12', icon: 'award' as const },
-  { label: 'Km parcourus', value: '18.5k', icon: 'map-pin' as const },
-  { label: 'Revenu moyen', value: '360 €/campagne', icon: 'trending-up' as const },
-  { label: 'Jours actifs', value: '45', icon: 'calendar' as const },
+const PERIODS: { key: StatsPeriod; label: string }[] = [
+  { key: 'week', label: '7 jours' },
+  { key: 'month', label: '30 jours' },
+  { key: '3mo', label: '3 mois' },
+  { key: 'year', label: '1 an' },
 ];
 
-const MONTHLY_BREAKDOWN = [
-  { month: 'Avril 2026', amount: 810, campaigns: 3 },
-  { month: 'Mars 2026', amount: 530, campaigns: 2 },
-  { month: 'Février 2026', amount: 680, campaigns: 3 },
-  { month: 'Janvier 2026', amount: 450, campaigns: 2 },
-];
+function formatKm(km: number): string {
+  return km >= 1000 ? `${(km / 1000).toFixed(1)}k` : km.toString();
+}
 
-const MAX_MONTH_AMOUNT = Math.max(...MONTHLY_BREAKDOWN.map((m) => m.amount));
+function avgPerCampaign(earnings: number, count: number): string {
+  if (count === 0) return '0 €';
+  return `${Math.round(earnings / count)} €/campagne`;
+}
 
 export default function StatsScreen() {
   const insets = useSafeAreaInsets();
-  const [activePeriod, setActivePeriod] = useState('30 jours');
+  const [period, setPeriod] = useState<StatsPeriod>('month');
+  const [data, setData] = useState<StatsResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const load = useCallback(async (p: StatsPeriod) => {
+    setLoading(true);
+    try {
+      const res = await fetchMyStats(p);
+      setData(res);
+    } catch {
+      setData(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load(period);
+  }, [load, period]);
+
+  useFocusEffect(
+    useCallback(() => {
+      load(period);
+    }, [load, period]),
+  );
+
+  const lifetime = data?.lifetime;
+  const periodStats = data?.period;
+  const breakdown = periodStats?.monthlyBreakdown ?? [];
+  const maxAmount =
+    breakdown.length > 0
+      ? Math.max(...breakdown.map((m) => m.amount))
+      : 1;
+
+  const STATS_GRID = [
+    {
+      label: 'Campagnes complétées',
+      value: String(lifetime?.campaignsDone ?? 0),
+      icon: 'award' as const,
+    },
+    {
+      label: 'Km parcourus',
+      value: formatKm(lifetime?.totalKm ?? 0),
+      icon: 'map-pin' as const,
+    },
+    {
+      label: 'Revenu moyen',
+      value: avgPerCampaign(
+        periodStats?.earnings ?? 0,
+        periodStats?.campaignsDone ?? 0,
+      ),
+      icon: 'trending-up' as const,
+    },
+    {
+      label: 'Missions actives',
+      value: String(periodStats?.activeCampaigns ?? 0),
+      icon: 'calendar' as const,
+    },
+  ];
+
+  const growth = periodStats?.growthPercent ?? 0;
+  const growthIsUp = growth >= 0;
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>
           <Feather name="arrow-left" size={22} color={Colors.navy} />
@@ -43,47 +113,75 @@ export default function StatsScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: TAB_BAR_HEIGHT + TAB_BAR_BOTTOM + 20 }}
+        contentContainerStyle={{
+          paddingBottom: TAB_BAR_HEIGHT + TAB_BAR_BOTTOM + 20,
+        }}
+        refreshControl={
+          <RefreshControl
+            refreshing={loading}
+            onRefresh={() => load(period)}
+            tintColor={Colors.navy}
+          />
+        }
       >
-        {/* Period selector */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.periodsRow}
         >
-          {PERIODS.map((period) => (
+          {PERIODS.map((p) => (
             <TouchableOpacity
-              key={period}
+              key={p.key}
               style={[
                 styles.periodChip,
-                activePeriod === period && styles.periodChipActive,
+                period === p.key && styles.periodChipActive,
               ]}
-              onPress={() => setActivePeriod(period)}
+              onPress={() => setPeriod(p.key)}
               activeOpacity={0.7}
             >
               <Text
                 style={[
                   styles.periodText,
-                  activePeriod === period && styles.periodTextActive,
+                  period === p.key && styles.periodTextActive,
                 ]}
               >
-                {period}
+                {p.label}
               </Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
 
-        {/* Revenue card */}
         <View style={styles.revenueCard}>
-          <Text style={styles.revenueLabel}>Revenus totaux</Text>
-          <Text style={styles.revenueAmount}>4 320 €</Text>
-          <View style={styles.revenueTrend}>
-            <Feather name="trending-up" size={14} color={Colors.success} />
-            <Text style={styles.revenueTrendText}>+12% vs période précédente</Text>
+          <Text style={styles.revenueLabel}>
+            Revenus ·{' '}
+            {PERIODS.find((p) => p.key === period)?.label.toLowerCase()}
+          </Text>
+          <Text style={styles.revenueAmount}>
+            {(periodStats?.earnings ?? 0).toLocaleString()} €
+          </Text>
+          <View
+            style={[
+              styles.revenueTrend,
+              !growthIsUp && { backgroundColor: '#FEE2E2' },
+            ]}
+          >
+            <Feather
+              name={growthIsUp ? 'trending-up' : 'trending-down'}
+              size={14}
+              color={growthIsUp ? Colors.success : '#DC2626'}
+            />
+            <Text
+              style={[
+                styles.revenueTrendText,
+                !growthIsUp && { color: '#DC2626' },
+              ]}
+            >
+              {growthIsUp ? '+' : ''}
+              {growth}% vs période précédente
+            </Text>
           </View>
         </View>
 
-        {/* Stats grid (2x2) */}
         <View style={styles.gridContainer}>
           <View style={styles.gridRow}>
             {STATS_GRID.slice(0, 2).map((stat) => (
@@ -109,34 +207,39 @@ export default function StatsScreen() {
           </View>
         </View>
 
-        {/* Monthly breakdown */}
-        <View style={styles.breakdownSection}>
-          <Text style={styles.breakdownTitle}>Détail mensuel</Text>
-          <View style={styles.breakdownList}>
-            {MONTHLY_BREAKDOWN.map((item, i) => (
-              <View
-                key={item.month}
-                style={[styles.breakdownItem, i < MONTHLY_BREAKDOWN.length - 1 && styles.breakdownBorder]}
-              >
-                <View style={styles.breakdownTop}>
-                  <Text style={styles.breakdownMonth}>{item.month}</Text>
-                  <Text style={styles.breakdownAmount}>{item.amount} €</Text>
+        {breakdown.length > 0 && (
+          <View style={styles.breakdownSection}>
+            <Text style={styles.breakdownTitle}>Détail mensuel</Text>
+            <View style={styles.breakdownList}>
+              {breakdown.map((item, i) => (
+                <View
+                  key={item.month}
+                  style={[
+                    styles.breakdownItem,
+                    i < breakdown.length - 1 && styles.breakdownBorder,
+                  ]}
+                >
+                  <View style={styles.breakdownTop}>
+                    <Text style={styles.breakdownMonth}>{item.month}</Text>
+                    <Text style={styles.breakdownAmount}>{item.amount} €</Text>
+                  </View>
+                  <Text style={styles.breakdownCampaigns}>
+                    {item.campaigns} campagne
+                    {item.campaigns > 1 ? 's' : ''}
+                  </Text>
+                  <View style={styles.progressBarBg}>
+                    <View
+                      style={[
+                        styles.progressBarFill,
+                        { width: `${(item.amount / maxAmount) * 100}%` },
+                      ]}
+                    />
+                  </View>
                 </View>
-                <Text style={styles.breakdownCampaigns}>
-                  {item.campaigns} campagne{item.campaigns > 1 ? 's' : ''}
-                </Text>
-                <View style={styles.progressBarBg}>
-                  <View
-                    style={[
-                      styles.progressBarFill,
-                      { width: `${(item.amount / MAX_MONTH_AMOUNT) * 100}%` },
-                    ]}
-                  />
-                </View>
-              </View>
-            ))}
+              ))}
+            </View>
           </View>
-        </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -145,7 +248,6 @@ export default function StatsScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.navyTint },
 
-  // Header
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -169,7 +271,6 @@ const styles = StyleSheet.create({
     color: Colors.navy,
   },
 
-  // Period selector
   periodsRow: {
     flexDirection: 'row',
     gap: 8,
@@ -196,7 +297,6 @@ const styles = StyleSheet.create({
     color: Colors.white,
   },
 
-  // Revenue card
   revenueCard: {
     backgroundColor: Colors.white,
     marginHorizontal: 16,
@@ -233,7 +333,6 @@ const styles = StyleSheet.create({
     color: Colors.success,
   },
 
-  // Stats grid
   gridContainer: {
     paddingHorizontal: 16,
     gap: 10,
@@ -272,7 +371,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  // Monthly breakdown
   breakdownSection: {
     paddingHorizontal: 16,
   },
