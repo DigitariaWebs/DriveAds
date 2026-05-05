@@ -41,7 +41,7 @@ export default function Index() {
       router.replace('/(auth)/onboarding');
       return;
     }
-    if (status === 'pending') {
+    if (status === 'pending' && role === 'driver') {
       router.replace('/(auth)/pending');
       return;
     }
