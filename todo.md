@@ -135,12 +135,13 @@
 
 ### D5 — Vehicles CRUD
 - Backend
-  - [ ] Vehicle collection (driverId, make, model, year, plate, type, inspection)
-  - [ ] CRUD endpoints (list, create, update, delete)
+  - [x] Vehicle collection (driverId, make, model, year, plate, type, inspection, photos, isActive)
+  - [x] CRUD endpoints (list, create, update, delete) + activate + photos add/delete
+  - [x] Migration from inline DriverDoc fields → vehicles collection
 - Mobile
-  - [ ] My cars screen (list + add/edit/delete)
+  - [x] My cars screen (list + add/edit/delete + activate + photo upload via Cloudinary)
 - Web (admin)
-  - [ ] Driver detail vehicles list
+  - [x] Driver detail vehicles list (photo previews + inspection status)
 
 ### D6 — Profile edit
 - Backend

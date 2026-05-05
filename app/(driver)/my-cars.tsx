@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -9,10 +9,12 @@ import {
   Modal,
   Alert,
   StyleSheet,
-  Dimensions,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
-import { router } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { Colors } from '../../constants/Colors';
 import { FontFamily } from '../../constants/Typography';
 import { Shadows } from '../../constants/Spacing';
@@ -20,323 +22,489 @@ import Badge from '../../components/ui/Badge';
 import Button from '../../components/ui/Button';
 import GradientHeader from '../../components/GradientHeader';
 import { TAB_BAR_HEIGHT, TAB_BAR_BOTTOM } from '../../constants/TabBarStyle';
+import {
+  fetchVehicles,
+  createVehicle,
+  updateVehicle,
+  deleteVehicle,
+  activateVehicle,
+  addVehiclePhotos,
+  deleteVehiclePhoto,
+  type Vehicle,
+  type VehicleType,
+} from '../../lib/vehicles-api';
+import { uploadAsset } from '../../lib/asset-upload';
 
-const { width } = Dimensions.get('window');
+const VEHICLE_TYPES: VehicleType[] = ['Berline', 'SUV', 'Utilitaire', 'Autre'];
 
-// ─── Types ──────────────────────────────────────────────────
-type Car = {
-  id: string;
-  name: string;
-  plate: string;
-  year: string;
-  type: string;
-  active: boolean;
-  photos: any[];
-};
+const PLACEHOLDER_PHOTO = require('../../assets/car/golf---1.jpg');
 
-const INITIAL_CARS: Car[] = [
-  {
-    id: '1',
-    name: 'Audi Q5',
-    plate: 'AB-123-CD',
-    year: '2022',
-    type: 'SUV',
-    active: true,
-    photos: [
-      require('../../assets/car/audi-q5---1.jpg'),
-      require('../../assets/car/audi-q5---2.jpg'),
-      require('../../assets/car/audi-q5---3.jpg'),
-      require('../../assets/car/audi-q5---4.jpg'),
-      require('../../assets/car/audi-q5---5.jpg'),
-    ],
-  },
-  {
-    id: '2',
-    name: 'Volkswagen Golf',
-    plate: 'EF-456-GH',
-    year: '2021',
-    type: 'Berline',
-    active: false,
-    photos: [
-      require('../../assets/car/golf---1.jpg'),
-      require('../../assets/car/golf---2.jpg'),
-      require('../../assets/car/golf---3.jpg'),
-      require('../../assets/car/golf---4.jpg'),
-      require('../../assets/car/golf---5.jpg'),
-    ],
-  },
-];
+function fullName(v: Vehicle): string {
+  return `${v.make} ${v.model}`.trim();
+}
 
-const VEHICLE_TYPES = ['Berline', 'SUV', 'Utilitaire', 'Autre'];
-
-// ─── Component ──────────────────────────────────────────────
 export default function MyCarsScreen() {
-  const [cars, setCars] = useState<Car[]>(INITIAL_CARS);
-  const [selectedCar, setSelectedCar] = useState<Car>(cars[0]);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [max, setMax] = useState(3);
+  const [loading, setLoading] = useState(true);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedPhoto, setSelectedPhoto] = useState(0);
 
   // Edit modal
   const [showEdit, setShowEdit] = useState(false);
-  const [editName, setEditName] = useState('');
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editMake, setEditMake] = useState('');
+  const [editModel, setEditModel] = useState('');
   const [editPlate, setEditPlate] = useState('');
   const [editYear, setEditYear] = useState('');
-  const [editType, setEditType] = useState('');
-  const [editingCarId, setEditingCarId] = useState<string | null>(null);
+  const [editType, setEditType] = useState<VehicleType>('Berline');
 
   // Add modal
   const [showAdd, setShowAdd] = useState(false);
-  const [newName, setNewName] = useState('');
+  const [newMake, setNewMake] = useState('');
+  const [newModel, setNewModel] = useState('');
   const [newPlate, setNewPlate] = useState('');
   const [newYear, setNewYear] = useState('');
-  const [newType, setNewType] = useState('');
+  const [newType, setNewType] = useState<VehicleType>('Berline');
 
-  // ─── Actions ────────────────────────────────────────────
-  const openEdit = (car: Car) => {
-    setEditingCarId(car.id);
-    setEditName(car.name);
-    setEditPlate(car.plate);
-    setEditYear(car.year);
-    setEditType(car.type);
+  const [submitting, setSubmitting] = useState(false);
+  const [photoUploading, setPhotoUploading] = useState(false);
+
+  const selected = useMemo(
+    () => vehicles.find((v) => v.id === selectedId) ?? vehicles[0] ?? null,
+    [vehicles, selectedId],
+  );
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetchVehicles();
+      setVehicles(res.vehicles);
+      setMax(res.max);
+      if (res.vehicles.length > 0 && !res.vehicles.find((v) => v.id === selectedId)) {
+        setSelectedId(res.vehicles[0].id);
+        setSelectedPhoto(0);
+      }
+    } catch {
+      setVehicles([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
+
+  const openEdit = (v: Vehicle) => {
+    setEditId(v.id);
+    setEditMake(v.make);
+    setEditModel(v.model);
+    setEditPlate(v.licensePlate);
+    setEditYear(v.year);
+    setEditType(v.type);
     setShowEdit(true);
   };
 
-  const saveEdit = () => {
-    if (!editName.trim() || !editPlate.trim()) {
-      Alert.alert('Erreur', 'Veuillez remplir le nom et la plaque.');
+  const saveEdit = async () => {
+    if (!editId) return;
+    if (!editMake.trim() || !editModel.trim() || !editPlate.trim()) {
+      Alert.alert('Erreur', 'Marque, modèle et plaque obligatoires.');
       return;
     }
-    setCars((prev) =>
-      prev.map((c) =>
-        c.id === editingCarId
-          ? { ...c, name: editName.trim(), plate: editPlate.trim(), year: editYear.trim(), type: editType }
-          : c,
-      ),
-    );
-    const updated = cars.find((c) => c.id === editingCarId);
-    if (updated && selectedCar.id === editingCarId) {
-      setSelectedCar({ ...updated, name: editName.trim(), plate: editPlate.trim(), year: editYear.trim(), type: editType });
+    setSubmitting(true);
+    try {
+      await updateVehicle(editId, {
+        make: editMake.trim(),
+        model: editModel.trim(),
+        licensePlate: editPlate.trim(),
+        year: editYear.trim() || '2024',
+        type: editType,
+      });
+      await load();
+      setShowEdit(false);
+      Alert.alert('Succès', 'Véhicule modifié.');
+    } catch (e: any) {
+      Alert.alert('Erreur', e?.message ?? 'Sauvegarde échouée.');
+    } finally {
+      setSubmitting(false);
     }
-    setShowEdit(false);
-    Alert.alert('Succès', 'Véhicule modifié avec succès.');
   };
 
-  const deleteCar = (carId: string) => {
+  const removeVehicle = (v: Vehicle) => {
     Alert.alert(
       'Supprimer',
-      'Êtes-vous sûr de vouloir supprimer ce véhicule ?',
+      `Supprimer "${fullName(v)}" ? Photos et inspection associées seront aussi supprimées.`,
       [
         { text: 'Annuler', style: 'cancel' },
         {
           text: 'Supprimer',
           style: 'destructive',
-          onPress: () => {
-            const remaining = cars.filter((c) => c.id !== carId);
-            setCars(remaining);
-            if (selectedCar.id === carId && remaining.length > 0) {
-              setSelectedCar(remaining[0]);
-              setSelectedPhoto(0);
+          onPress: async () => {
+            try {
+              await deleteVehicle(v.id);
+              await load();
+              setShowEdit(false);
+            } catch (e: any) {
+              Alert.alert('Erreur', e?.message ?? 'Suppression échouée.');
             }
-            setShowEdit(false);
           },
         },
       ],
     );
   };
 
-  const toggleActive = (carId: string) => {
-    setCars((prev) =>
-      prev.map((c) => ({ ...c, active: c.id === carId })),
-    );
-    setSelectedCar((prev) => ({ ...prev, active: prev.id === carId }));
+  const toggleActive = async (v: Vehicle) => {
+    if (v.isActive) return;
+    try {
+      const next = await activateVehicle(v.id);
+      setVehicles(next);
+    } catch (e: any) {
+      Alert.alert('Erreur', e?.message ?? 'Activation échouée.');
+    }
   };
 
-  const deletePhoto = (photoIndex: number) => {
-    if (selectedCar.photos.length <= 1) {
-      Alert.alert('Erreur', 'Vous devez garder au moins une photo.');
+  const addCar = async () => {
+    if (!newMake.trim() || !newModel.trim() || !newPlate.trim()) {
+      Alert.alert('Erreur', 'Marque, modèle et plaque obligatoires.');
       return;
     }
+    setSubmitting(true);
+    try {
+      await createVehicle({
+        make: newMake.trim(),
+        model: newModel.trim(),
+        licensePlate: newPlate.trim(),
+        year: newYear.trim() || '2024',
+        type: newType,
+      });
+      setNewMake('');
+      setNewModel('');
+      setNewPlate('');
+      setNewYear('');
+      setNewType('Berline');
+      setShowAdd(false);
+      await load();
+      Alert.alert('Succès', 'Véhicule ajouté.');
+    } catch (e: any) {
+      Alert.alert('Erreur', e?.message ?? 'Ajout échoué.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const pickAndUploadPhotos = async () => {
+    if (!selected) return;
+    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!perm.granted) {
+      Alert.alert('Permission refusée', 'Accès galerie nécessaire.');
+      return;
+    }
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
+      selectionLimit: 5,
+      quality: 0.85,
+    });
+    if (res.canceled) return;
+    setPhotoUploading(true);
+    try {
+      const uploaded = [];
+      for (const a of res.assets) {
+        const f = await uploadAsset(
+          {
+            uri: a.uri,
+            name: a.fileName ?? `vehicle-${Date.now()}.jpg`,
+            mimeType: a.mimeType ?? 'image/jpeg',
+          },
+          'asset',
+        );
+        uploaded.push(f);
+      }
+      const updated = await addVehiclePhotos(selected.id, uploaded);
+      setVehicles((prev) =>
+        prev.map((v) => (v.id === updated.id ? updated : v)),
+      );
+    } catch (e: any) {
+      Alert.alert('Erreur', e?.message ?? 'Upload échoué.');
+    } finally {
+      setPhotoUploading(false);
+    }
+  };
+
+  const removePhoto = (publicId: string) => {
+    if (!selected) return;
+    if (selected.photos.length === 0) return;
     Alert.alert('Supprimer', 'Supprimer cette photo ?', [
       { text: 'Annuler', style: 'cancel' },
       {
         text: 'Supprimer',
         style: 'destructive',
-        onPress: () => {
-          const newPhotos = selectedCar.photos.filter((_, i) => i !== photoIndex);
-          const updatedCar = { ...selectedCar, photos: newPhotos };
-          setCars((prev) => prev.map((c) => (c.id === selectedCar.id ? updatedCar : c)));
-          setSelectedCar(updatedCar);
-          setSelectedPhoto(Math.min(selectedPhoto, newPhotos.length - 1));
+        onPress: async () => {
+          try {
+            const updated = await deleteVehiclePhoto(selected.id, publicId);
+            setVehicles((prev) =>
+              prev.map((v) => (v.id === updated.id ? updated : v)),
+            );
+            if (selectedPhoto >= updated.photos.length) {
+              setSelectedPhoto(Math.max(0, updated.photos.length - 1));
+            }
+          } catch (e: any) {
+            Alert.alert('Erreur', e?.message ?? 'Suppression échouée.');
+          }
         },
       },
     ]);
   };
 
-  const addCar = () => {
-    if (!newName.trim() || !newPlate.trim()) {
-      Alert.alert('Erreur', 'Veuillez remplir le nom et la plaque.');
-      return;
-    }
-    const newCar: Car = {
-      id: `car_${Date.now()}`,
-      name: newName.trim(),
-      plate: newPlate.trim().toUpperCase(),
-      year: newYear.trim() || '2024',
-      type: newType || 'Berline',
-      active: false,
-      photos: [require('../../assets/car/golf---1.jpg')], // placeholder
-    };
-    setCars((prev) => [...prev, newCar]);
-    setNewName('');
-    setNewPlate('');
-    setNewYear('');
-    setNewType('');
-    setShowAdd(false);
-    Alert.alert('Succès', 'Véhicule ajouté avec succès.');
-  };
+  const canAdd = vehicles.length < max;
 
-  // ─── Render ─────────────────────────────────────────────
+  if (loading && vehicles.length === 0) {
+    return (
+      <View style={[styles.screen, styles.center]}>
+        <ActivityIndicator color={Colors.navy} />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.screen}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: TAB_BAR_HEIGHT + TAB_BAR_BOTTOM + 20 }}
+        contentContainerStyle={{
+          paddingBottom: TAB_BAR_HEIGHT + TAB_BAR_BOTTOM + 20,
+        }}
+        refreshControl={
+          <RefreshControl
+            refreshing={loading}
+            onRefresh={load}
+            tintColor={Colors.navy}
+          />
+        }
       >
         <GradientHeader
           title="Mes véhicules"
-          subtitle={`${cars.length} véhicule${cars.length > 1 ? 's' : ''} enregistré${cars.length > 1 ? 's' : ''}`}
-          rightIcon="plus"
-          onRightPress={() => setShowAdd(true)}
+          subtitle={`${vehicles.length} / ${max} véhicule${vehicles.length > 1 ? 's' : ''}`}
+          rightIcon={canAdd ? 'plus' : undefined}
+          onRightPress={canAdd ? () => setShowAdd(true) : undefined}
         />
-        <View style={styles.carsContentTop} />
-        {/* Car selector tabs */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.carSelectorRow}
-          style={styles.carSelectorScroll}
-        >
-          {cars.map((car) => {
-            const isSelected = selectedCar.id === car.id;
-            return (
-              <TouchableOpacity
-                key={car.id}
-                style={[styles.carTab, isSelected && styles.carTabActive]}
-                onPress={() => { setSelectedCar(car); setSelectedPhoto(0); }}
-                activeOpacity={0.7}
-              >
-                <Image source={car.photos[0]} style={styles.carTabImage} />
-                <View style={styles.carTabInfo}>
-                  <Text style={[styles.carTabName, isSelected && styles.carTabNameActive]}>
-                    {car.name}
-                  </Text>
-                  <Text style={styles.carTabPlate}>{car.plate}</Text>
+
+        {vehicles.length === 0 ? (
+          <View style={styles.empty}>
+            <Feather name="truck" size={32} color={Colors.gray400} />
+            <Text style={styles.emptyTitle}>Aucun véhicule enregistré</Text>
+            <View style={{ marginTop: 12 }}>
+              <Button variant="primary" size="md" icon="plus" onPress={() => setShowAdd(true)}>
+                Ajouter un véhicule
+              </Button>
+            </View>
+          </View>
+        ) : (
+          <>
+            <View style={styles.carsContentTop} />
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.carSelectorRow}
+              style={styles.carSelectorScroll}
+            >
+              {vehicles.map((v) => {
+                const isSelected = selected?.id === v.id;
+                const cover = v.photos[0]?.url
+                  ? { uri: v.photos[0].url }
+                  : PLACEHOLDER_PHOTO;
+                return (
+                  <TouchableOpacity
+                    key={v.id}
+                    style={[styles.carTab, isSelected && styles.carTabActive]}
+                    onPress={() => {
+                      setSelectedId(v.id);
+                      setSelectedPhoto(0);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Image source={cover} style={styles.carTabImage} />
+                    <View style={styles.carTabInfo}>
+                      <Text
+                        style={[
+                          styles.carTabName,
+                          isSelected && styles.carTabNameActive,
+                        ]}
+                      >
+                        {fullName(v)}
+                      </Text>
+                      <Text style={styles.carTabPlate}>{v.licensePlate}</Text>
+                    </View>
+                    {v.isActive && <Badge variant="success" label="Active" />}
+                  </TouchableOpacity>
+                );
+              })}
+
+              {canAdd && (
+                <TouchableOpacity
+                  style={styles.addCarTab}
+                  onPress={() => setShowAdd(true)}
+                  activeOpacity={0.7}
+                >
+                  <Feather name="plus" size={20} color={Colors.navy} />
+                  <Text style={styles.addCarText}>Ajouter</Text>
+                </TouchableOpacity>
+              )}
+            </ScrollView>
+
+            {selected && (
+              <>
+                <View style={styles.mainPhotoWrap}>
+                  <Image
+                    source={
+                      selected.photos[selectedPhoto]?.url
+                        ? { uri: selected.photos[selectedPhoto].url }
+                        : PLACEHOLDER_PHOTO
+                    }
+                    style={styles.mainPhoto}
+                  />
+                  <View style={styles.photoCounter}>
+                    <Text style={styles.photoCounterText}>
+                      {selected.photos.length === 0
+                        ? '0/0'
+                        : `${selectedPhoto + 1}/${selected.photos.length}`}
+                    </Text>
+                  </View>
+                  {selected.photos[selectedPhoto] && (
+                    <TouchableOpacity
+                      style={styles.deletePhotoBtn}
+                      onPress={() =>
+                        removePhoto(selected.photos[selectedPhoto].publicId)
+                      }
+                    >
+                      <Feather name="trash-2" size={16} color={Colors.white} />
+                    </TouchableOpacity>
+                  )}
                 </View>
-                {car.active && <Badge variant="success" label="Active" />}
-              </TouchableOpacity>
-            );
-          })}
 
-          {/* Add car button in the selector */}
-          <TouchableOpacity
-            style={styles.addCarTab}
-            onPress={() => setShowAdd(true)}
-            activeOpacity={0.7}
-          >
-            <Feather name="plus" size={20} color={Colors.navy} />
-            <Text style={styles.addCarText}>Ajouter</Text>
-          </TouchableOpacity>
-        </ScrollView>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.thumbRow}
+                  style={styles.thumbScroll}
+                >
+                  {selected.photos.map((p, i) => (
+                    <TouchableOpacity
+                      key={p.publicId}
+                      onPress={() => setSelectedPhoto(i)}
+                      activeOpacity={0.7}
+                    >
+                      <Image
+                        source={{ uri: p.url }}
+                        style={[
+                          styles.thumb,
+                          selectedPhoto === i && styles.thumbActive,
+                        ]}
+                      />
+                    </TouchableOpacity>
+                  ))}
+                  <TouchableOpacity
+                    style={styles.addPhotoThumb}
+                    onPress={pickAndUploadPhotos}
+                    disabled={photoUploading}
+                    activeOpacity={0.7}
+                  >
+                    {photoUploading ? (
+                      <ActivityIndicator size="small" color={Colors.navy} />
+                    ) : (
+                      <Feather name="camera" size={18} color={Colors.navy} />
+                    )}
+                  </TouchableOpacity>
+                </ScrollView>
 
-        {/* Main photo */}
-        <View style={styles.mainPhotoWrap}>
-          <Image source={selectedCar.photos[selectedPhoto]} style={styles.mainPhoto} />
-          <View style={styles.photoCounter}>
-            <Text style={styles.photoCounterText}>
-              {selectedPhoto + 1}/{selectedCar.photos.length}
-            </Text>
-          </View>
-          {/* Delete photo overlay */}
-          <TouchableOpacity
-            style={styles.deletePhotoBtn}
-            onPress={() => deletePhoto(selectedPhoto)}
-          >
-            <Feather name="trash-2" size={16} color={Colors.white} />
-          </TouchableOpacity>
-        </View>
+                <View style={styles.detailsSection}>
+                  <View style={styles.nameRow}>
+                    <Text style={styles.carName}>{fullName(selected)}</Text>
+                    <TouchableOpacity
+                      style={styles.editBtn}
+                      onPress={() => openEdit(selected)}
+                    >
+                      <Feather name="edit-2" size={16} color={Colors.navy} />
+                    </TouchableOpacity>
+                  </View>
 
-        {/* Photo thumbnails + add photo */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.thumbRow}
-          style={styles.thumbScroll}
-        >
-          {selectedCar.photos.map((photo, i) => (
-            <TouchableOpacity
-              key={i}
-              onPress={() => setSelectedPhoto(i)}
-              activeOpacity={0.7}
-            >
-              <Image
-                source={photo}
-                style={[styles.thumb, selectedPhoto === i && styles.thumbActive]}
-              />
-            </TouchableOpacity>
-          ))}
-          <TouchableOpacity style={styles.addPhotoThumb} activeOpacity={0.7}>
-            <Feather name="camera" size={18} color={Colors.navy} />
-          </TouchableOpacity>
-        </ScrollView>
+                  <View style={styles.badgeRow}>
+                    <Badge variant="navy" label={selected.type} />
+                    <Badge variant="neutral" label={selected.year} />
+                    {selected.isActive ? (
+                      <Badge variant="success" label="En service" />
+                    ) : (
+                      <TouchableOpacity onPress={() => toggleActive(selected)}>
+                        <Badge variant="warning" label="Activer" />
+                      </TouchableOpacity>
+                    )}
+                  </View>
 
-        {/* Car details */}
-        <View style={styles.detailsSection}>
-          <View style={styles.nameRow}>
-            <Text style={styles.carName}>{selectedCar.name}</Text>
-            <TouchableOpacity
-              style={styles.editBtn}
-              onPress={() => openEdit(selectedCar)}
-            >
-              <Feather name="edit-2" size={16} color={Colors.navy} />
-            </TouchableOpacity>
-          </View>
+                  <View style={styles.infoCard}>
+                    <InfoRow
+                      icon="credit-card"
+                      label="Plaque"
+                      value={selected.licensePlate}
+                    />
+                    <InfoRow icon="calendar" label="Année" value={selected.year} />
+                    <InfoRow icon="truck" label="Type" value={selected.type} />
+                    <InfoRow
+                      icon="image"
+                      label="Photos"
+                      value={`${selected.photos.length} photo${selected.photos.length !== 1 ? 's' : ''}`}
+                    />
+                    {selected.inspection && (
+                      <InfoRow
+                        icon="shield"
+                        label="Contrôle"
+                        value={
+                          selected.inspection.status === 'missing'
+                            ? 'Non renseigné'
+                            : selected.inspection.status === 'expired'
+                              ? `Expiré (${Math.abs(selected.inspection.daysUntilExpiry ?? 0)}j)`
+                              : selected.inspection.status === 'expiring'
+                                ? `Expire dans ${selected.inspection.daysUntilExpiry}j`
+                                : `Valide (${selected.inspection.daysUntilExpiry}j)`
+                        }
+                      />
+                    )}
+                  </View>
 
-          <View style={styles.badgeRow}>
-            <Badge variant="navy" label={selectedCar.type} />
-            <Badge variant="neutral" label={selectedCar.year} />
-            {selectedCar.active ? (
-              <Badge variant="success" label="En service" />
-            ) : (
-              <TouchableOpacity onPress={() => toggleActive(selectedCar.id)}>
-                <Badge variant="warning" label="Activer" />
-              </TouchableOpacity>
+                  <View style={styles.actionsRow}>
+                    <View style={styles.actionBtn}>
+                      <Button
+                        variant="outline"
+                        size="md"
+                        icon="edit-2"
+                        onPress={() => openEdit(selected)}
+                      >
+                        Modifier
+                      </Button>
+                    </View>
+                    <View style={styles.actionBtn}>
+                      <Button
+                        variant="danger"
+                        size="md"
+                        icon="trash-2"
+                        onPress={() => removeVehicle(selected)}
+                      >
+                        Supprimer
+                      </Button>
+                    </View>
+                  </View>
+                </View>
+              </>
             )}
-          </View>
-
-          {/* Info card */}
-          <View style={styles.infoCard}>
-            <InfoRow icon="credit-card" label="Plaque" value={selectedCar.plate} />
-            <InfoRow icon="calendar" label="Année" value={selectedCar.year} />
-            <InfoRow icon="truck" label="Type" value={selectedCar.type} />
-            <InfoRow icon="image" label="Photos" value={`${selectedCar.photos.length} photos`} />
-          </View>
-
-          {/* Action buttons */}
-          <View style={styles.actionsRow}>
-            <View style={styles.actionBtn}>
-              <Button variant="outline" size="md" icon="edit-2" onPress={() => openEdit(selectedCar)}>
-                Modifier
-              </Button>
-            </View>
-            <View style={styles.actionBtn}>
-              <Button variant="danger" size="md" icon="trash-2" onPress={() => deleteCar(selectedCar.id)}>
-                Supprimer
-              </Button>
-            </View>
-          </View>
-        </View>
+          </>
+        )}
       </ScrollView>
 
-      {/* ─── Edit Modal ──────────────────────────────────── */}
       <Modal
         visible={showEdit}
         animationType="slide"
@@ -352,15 +520,47 @@ export default function MyCarsScreen() {
             </TouchableOpacity>
           </View>
 
-          <ScrollView contentContainerStyle={styles.modalContent} keyboardShouldPersistTaps="handled">
-            <Text style={styles.fieldLabel}>Nom du véhicule</Text>
-            <TextInput style={styles.input} value={editName} onChangeText={setEditName} placeholder="Audi Q5" placeholderTextColor={Colors.gray400} />
+          <ScrollView
+            contentContainerStyle={styles.modalContent}
+            keyboardShouldPersistTaps="handled"
+          >
+            <Text style={styles.fieldLabel}>Marque</Text>
+            <TextInput
+              style={styles.input}
+              value={editMake}
+              onChangeText={setEditMake}
+              placeholder="Audi"
+              placeholderTextColor={Colors.gray400}
+            />
+
+            <Text style={styles.fieldLabel}>Modèle</Text>
+            <TextInput
+              style={styles.input}
+              value={editModel}
+              onChangeText={setEditModel}
+              placeholder="Q5"
+              placeholderTextColor={Colors.gray400}
+            />
 
             <Text style={styles.fieldLabel}>Plaque d'immatriculation</Text>
-            <TextInput style={styles.input} value={editPlate} onChangeText={setEditPlate} placeholder="AB-123-CD" placeholderTextColor={Colors.gray400} autoCapitalize="characters" />
+            <TextInput
+              style={styles.input}
+              value={editPlate}
+              onChangeText={setEditPlate}
+              placeholder="AB-123-CD"
+              placeholderTextColor={Colors.gray400}
+              autoCapitalize="characters"
+            />
 
             <Text style={styles.fieldLabel}>Année</Text>
-            <TextInput style={styles.input} value={editYear} onChangeText={setEditYear} placeholder="2022" placeholderTextColor={Colors.gray400} keyboardType="number-pad" />
+            <TextInput
+              style={styles.input}
+              value={editYear}
+              onChangeText={setEditYear}
+              placeholder="2022"
+              placeholderTextColor={Colors.gray400}
+              keyboardType="number-pad"
+            />
 
             <Text style={styles.fieldLabel}>Type de véhicule</Text>
             <View style={styles.typeRow}>
@@ -370,17 +570,38 @@ export default function MyCarsScreen() {
                   style={[styles.typeChip, editType === t && styles.typeChipActive]}
                   onPress={() => setEditType(t)}
                 >
-                  <Text style={[styles.typeChipText, editType === t && styles.typeChipTextActive]}>{t}</Text>
+                  <Text
+                    style={[
+                      styles.typeChipText,
+                      editType === t && styles.typeChipTextActive,
+                    ]}
+                  >
+                    {t}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </View>
 
             <View style={styles.modalActions}>
-              <Button variant="primary" size="lg" icon="check" onPress={saveEdit}>
+              <Button
+                variant="primary"
+                size="lg"
+                icon="check"
+                loading={submitting}
+                onPress={saveEdit}
+              >
                 Enregistrer
               </Button>
               <View style={{ height: 10 }} />
-              <Button variant="danger" size="md" icon="trash-2" onPress={() => editingCarId && deleteCar(editingCarId)}>
+              <Button
+                variant="danger"
+                size="md"
+                icon="trash-2"
+                onPress={() => {
+                  const v = vehicles.find((x) => x.id === editId);
+                  if (v) removeVehicle(v);
+                }}
+              >
                 Supprimer ce véhicule
               </Button>
             </View>
@@ -388,7 +609,6 @@ export default function MyCarsScreen() {
         </View>
       </Modal>
 
-      {/* ─── Add Modal ───────────────────────────────────── */}
       <Modal
         visible={showAdd}
         animationType="slide"
@@ -404,15 +624,47 @@ export default function MyCarsScreen() {
             </TouchableOpacity>
           </View>
 
-          <ScrollView contentContainerStyle={styles.modalContent} keyboardShouldPersistTaps="handled">
-            <Text style={styles.fieldLabel}>Nom du véhicule</Text>
-            <TextInput style={styles.input} value={newName} onChangeText={setNewName} placeholder="Ex: Peugeot 308" placeholderTextColor={Colors.gray400} />
+          <ScrollView
+            contentContainerStyle={styles.modalContent}
+            keyboardShouldPersistTaps="handled"
+          >
+            <Text style={styles.fieldLabel}>Marque</Text>
+            <TextInput
+              style={styles.input}
+              value={newMake}
+              onChangeText={setNewMake}
+              placeholder="Peugeot"
+              placeholderTextColor={Colors.gray400}
+            />
+
+            <Text style={styles.fieldLabel}>Modèle</Text>
+            <TextInput
+              style={styles.input}
+              value={newModel}
+              onChangeText={setNewModel}
+              placeholder="308"
+              placeholderTextColor={Colors.gray400}
+            />
 
             <Text style={styles.fieldLabel}>Plaque d'immatriculation</Text>
-            <TextInput style={styles.input} value={newPlate} onChangeText={setNewPlate} placeholder="AB-123-CD" placeholderTextColor={Colors.gray400} autoCapitalize="characters" />
+            <TextInput
+              style={styles.input}
+              value={newPlate}
+              onChangeText={setNewPlate}
+              placeholder="AB-123-CD"
+              placeholderTextColor={Colors.gray400}
+              autoCapitalize="characters"
+            />
 
             <Text style={styles.fieldLabel}>Année</Text>
-            <TextInput style={styles.input} value={newYear} onChangeText={setNewYear} placeholder="2024" placeholderTextColor={Colors.gray400} keyboardType="number-pad" />
+            <TextInput
+              style={styles.input}
+              value={newYear}
+              onChangeText={setNewYear}
+              placeholder="2024"
+              placeholderTextColor={Colors.gray400}
+              keyboardType="number-pad"
+            />
 
             <Text style={styles.fieldLabel}>Type de véhicule</Text>
             <View style={styles.typeRow}>
@@ -422,19 +674,33 @@ export default function MyCarsScreen() {
                   style={[styles.typeChip, newType === t && styles.typeChipActive]}
                   onPress={() => setNewType(t)}
                 >
-                  <Text style={[styles.typeChipText, newType === t && styles.typeChipTextActive]}>{t}</Text>
+                  <Text
+                    style={[
+                      styles.typeChipText,
+                      newType === t && styles.typeChipTextActive,
+                    ]}
+                  >
+                    {t}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </View>
 
-            <TouchableOpacity style={styles.uploadArea} activeOpacity={0.7}>
-              <Feather name="camera" size={28} color={Colors.navy} />
-              <Text style={styles.uploadText}>Ajouter des photos</Text>
-              <Text style={styles.uploadHint}>Appuyez pour prendre ou choisir des photos</Text>
-            </TouchableOpacity>
+            <View style={styles.uploadHint}>
+              <Feather name="info" size={14} color={Colors.gray400} />
+              <Text style={styles.uploadHintText}>
+                Vous pourrez ajouter des photos après création.
+              </Text>
+            </View>
 
             <View style={styles.modalActions}>
-              <Button variant="primary" size="lg" icon="plus" onPress={addCar}>
+              <Button
+                variant="primary"
+                size="lg"
+                icon="plus"
+                loading={submitting}
+                onPress={addCar}
+              >
                 Ajouter le véhicule
               </Button>
             </View>
@@ -445,8 +711,15 @@ export default function MyCarsScreen() {
   );
 }
 
-// ─── Info Row Helper ────────────────────────────────────────
-function InfoRow({ icon, label, value }: { icon: keyof typeof Feather.glyphMap; label: string; value: string }) {
+function InfoRow({
+  icon,
+  label,
+  value,
+}: {
+  icon: keyof typeof Feather.glyphMap;
+  label: string;
+  value: string;
+}) {
   return (
     <View style={styles.infoRow}>
       <Feather name={icon} size={16} color={Colors.gray400} />
@@ -456,13 +729,25 @@ function InfoRow({ icon, label, value }: { icon: keyof typeof Feather.glyphMap; 
   );
 }
 
-// ─── Styles ─────────────────────────────────────────────────
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#F6F6F2' },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+
+  empty: {
+    alignItems: 'center',
+    paddingTop: 60,
+    paddingHorizontal: 40,
+    gap: 8,
+  },
+  emptyTitle: {
+    fontFamily: FontFamily.bold,
+    fontSize: 16,
+    color: Colors.gray700,
+    marginTop: 8,
+  },
 
   carsContentTop: { height: 16 },
 
-  // Car selector
   carSelectorScroll: { flexGrow: 0 },
   carSelectorRow: {
     paddingHorizontal: 16,
@@ -488,7 +773,12 @@ const styles = StyleSheet.create({
   carTabInfo: {},
   carTabName: { fontFamily: FontFamily.bold, fontSize: 13, color: Colors.gray700 },
   carTabNameActive: { color: Colors.navy },
-  carTabPlate: { fontFamily: FontFamily.regular, fontSize: 10, color: Colors.gray400, marginTop: 1 },
+  carTabPlate: {
+    fontFamily: FontFamily.regular,
+    fontSize: 10,
+    color: Colors.gray400,
+    marginTop: 1,
+  },
   addCarTab: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -501,9 +791,12 @@ const styles = StyleSheet.create({
     borderColor: Colors.gray200,
     borderStyle: 'dashed',
   },
-  addCarText: { fontFamily: FontFamily.medium, fontSize: 11, color: Colors.navy },
+  addCarText: {
+    fontFamily: FontFamily.medium,
+    fontSize: 11,
+    color: Colors.navy,
+  },
 
-  // Main photo
   mainPhotoWrap: {
     marginHorizontal: 16,
     borderRadius: 20,
@@ -521,7 +814,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
-  photoCounterText: { fontFamily: FontFamily.semiBold, fontSize: 11, color: Colors.white },
+  photoCounterText: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 11,
+    color: Colors.white,
+  },
   deletePhotoBtn: {
     position: 'absolute',
     top: 10,
@@ -534,10 +831,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
-  // Thumbnails
   thumbScroll: { flexGrow: 0 },
   thumbRow: { paddingHorizontal: 16, gap: 8, paddingBottom: 20 },
-  thumb: { width: 56, height: 42, borderRadius: 10, borderWidth: 2, borderColor: 'transparent' },
+  thumb: {
+    width: 56,
+    height: 42,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
   thumbActive: { borderColor: Colors.navy },
   addPhotoThumb: {
     width: 56,
@@ -551,7 +853,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
   },
 
-  // Details
   detailsSection: { paddingHorizontal: 16 },
   nameRow: {
     flexDirection: 'row',
@@ -585,21 +886,30 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.gray100,
   },
-  infoLabel: { fontFamily: FontFamily.medium, fontSize: 12, color: Colors.gray500, width: 60 },
-  infoValue: { fontFamily: FontFamily.semiBold, fontSize: 13, color: Colors.black, flex: 1 },
-
-  actionsRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 16,
+  infoLabel: {
+    fontFamily: FontFamily.medium,
+    fontSize: 12,
+    color: Colors.gray500,
+    width: 70,
   },
+  infoValue: {
+    fontFamily: FontFamily.semiBold,
+    fontSize: 13,
+    color: Colors.black,
+    flex: 1,
+  },
+
+  actionsRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
   actionBtn: { flex: 1 },
 
-  // ─── Modals ───────────────────────────────────────────────
   modal: { flex: 1, backgroundColor: Colors.navyTint },
   modalHandle: {
-    width: 40, height: 4, borderRadius: 2,
-    backgroundColor: Colors.gray300, alignSelf: 'center', marginTop: 10,
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Colors.gray300,
+    alignSelf: 'center',
+    marginTop: 10,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -608,7 +918,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
   },
-  modalTitle: { fontFamily: FontFamily.bold, fontSize: 18, color: Colors.black },
+  modalTitle: {
+    fontFamily: FontFamily.bold,
+    fontSize: 18,
+    color: Colors.black,
+  },
   modalContent: { paddingHorizontal: 20, paddingBottom: 40 },
   modalActions: { marginTop: 24 },
 
@@ -653,21 +967,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.gray600,
   },
-  typeChipTextActive: {
-    color: Colors.white,
-  },
-  uploadArea: {
+  typeChipTextActive: { color: Colors.white },
+  uploadHint: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.white,
-    borderRadius: 20,
-    padding: 28,
-    marginTop: 20,
-    borderWidth: 1.5,
-    borderColor: Colors.gray200,
-    borderStyle: 'dashed',
     gap: 6,
+    marginTop: 24,
+    paddingHorizontal: 4,
   },
-  uploadText: { fontFamily: FontFamily.semiBold, fontSize: 14, color: Colors.navy },
-  uploadHint: { fontFamily: FontFamily.regular, fontSize: 11, color: Colors.gray400 },
+  uploadHintText: {
+    fontFamily: FontFamily.regular,
+    fontSize: 11,
+    color: Colors.gray500,
+  },
 });

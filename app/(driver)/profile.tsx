@@ -226,7 +226,7 @@ export default function DriverProfileScreen() {
               </View>
               <View style={styles.vehicleTypeChip}>
                 <Text style={styles.vehicleTypeText}>
-                  {driver.vehicleType.toUpperCase()}
+                  {(driver.vehicleType ?? '').toUpperCase()}
                 </Text>
               </View>
             </TouchableOpacity>

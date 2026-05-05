@@ -17,10 +17,11 @@ export type Driver = {
   email: string;
   phone: string;
   city: 'Paris' | 'Lyon' | 'Caen' | 'Marseille' | 'Nice' | 'Bordeaux';
-  vehicleModel: string;
-  vehicleYear: string;
-  licensePlate: string;
-  vehicleType: 'Berline' | 'SUV' | 'Utilitaire' | 'Autre';
+  // Legacy mock fields — real data lives in vehicles collection now.
+  vehicleModel?: string;
+  vehicleYear?: string;
+  licensePlate?: string;
+  vehicleType?: 'Berline' | 'SUV' | 'Utilitaire' | 'Autre';
   status: ValidationStatus;
   joinedAt: string;
   campaignsDone: number;
