@@ -145,11 +145,11 @@
 
 ### D6 — Profile edit
 - Backend
-  - [ ] Update driver profile endpoint (identity, contact, city)
+  - [x] Update driver profile endpoint (phone, city + 48h cooldown). Name + email KYC-locked. Admin endpoint allows name/status overrides.
 - Mobile
-  - [ ] Edit profile screen
+  - [x] Edit profile screen — phone + city editable, name/email read-only
 - Web (admin)
-  - [ ] Driver detail edit
+  - [x] Driver detail edit modal (firstName, lastName, phone, city, status — bypasses cooldown)
 
 ### D7 — Notifications + preferences
 - Backend (uses X3)

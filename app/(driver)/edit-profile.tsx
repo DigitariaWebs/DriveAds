@@ -18,6 +18,7 @@ import { TAB_BAR_HEIGHT, TAB_BAR_BOTTOM } from '../../constants/TabBarStyle';
 import Button from '../../components/ui/Button';
 import { useAuth } from '../../context/AuthContext';
 import { updateBankAccount } from '../../lib/payments-api';
+import { updateProfile } from '../../lib/profile-api';
 
 const CITIES = ['Paris', 'Lyon', 'Caen', 'Marseille', 'Nice', 'Bordeaux'];
 
@@ -25,13 +26,15 @@ export default function EditProfileScreen() {
   const insets = useSafeAreaInsets();
   const { currentDriver, refresh } = useAuth();
 
-  const [firstName, setFirstName] = useState(currentDriver?.firstName ?? '');
-  const [lastName, setLastName] = useState(currentDriver?.lastName ?? '');
-  const [email] = useState(''); // read-only for now (managed by Better Auth)
+  // Name + email read-only (KYC-locked / Better Auth managed).
+  const firstName = currentDriver?.firstName ?? '';
+  const lastName = currentDriver?.lastName ?? '';
+  const email = '';
   const [phone, setPhone] = useState(currentDriver?.phone ?? '');
   const [selectedCity, setSelectedCity] = useState<string>(
     currentDriver?.city ?? 'Paris',
   );
+  const [savingProfile, setSavingProfile] = useState(false);
   const [iban, setIban] = useState(currentDriver?.bankAccount?.iban ?? '');
   const [bankName, setBankName] = useState(
     currentDriver?.bankAccount?.bankName ?? '',
@@ -63,14 +66,41 @@ export default function EditProfileScreen() {
     }
   };
 
-  const handleSave = () => {
-    // Profile fields (name/phone/city) edit endpoint not yet implemented.
-    // Bank fields save via separate button above.
-    Alert.alert(
-      'Info',
-      'Pour l\'instant seul l\'IBAN se sauvegarde. Le reste arrive bientôt.',
-      [{ text: 'OK', onPress: () => router.back() }],
-    );
+  const handleSave = async () => {
+    const trimmedPhone = phone.trim();
+    if (!trimmedPhone) {
+      Alert.alert('Erreur', 'Le téléphone ne peut pas être vide.');
+      return;
+    }
+    const phoneChanged = trimmedPhone !== (currentDriver?.phone ?? '');
+    const cityChanged = selectedCity !== (currentDriver?.city ?? '');
+    if (!phoneChanged && !cityChanged) {
+      router.back();
+      return;
+    }
+    setSavingProfile(true);
+    try {
+      await updateProfile({
+        phone: phoneChanged ? trimmedPhone : undefined,
+        city: cityChanged ? selectedCity : undefined,
+      });
+      await refresh();
+      Alert.alert('Succès', 'Profil mis à jour.', [
+        { text: 'OK', onPress: () => router.back() },
+      ]);
+    } catch (e: any) {
+      const message: string = e?.message ?? 'Sauvegarde échouée.';
+      if (message.startsWith('city changed too recently')) {
+        Alert.alert(
+          'Changement de ville trop récent',
+          'Vous devez attendre 48h entre deux changements de ville.',
+        );
+      } else {
+        Alert.alert('Erreur', message);
+      }
+    } finally {
+      setSavingProfile(false);
+    }
   };
 
   return (
@@ -103,12 +133,12 @@ export default function EditProfileScreen() {
           {/* Form */}
           <View style={styles.formCard}>
             <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>Prénom</Text>
-              <View style={styles.inputWrapper}>
+              <Text style={styles.fieldLabel}>Prénom (verrouillé KYC)</Text>
+              <View style={[styles.inputWrapper, { opacity: 0.6 }]}>
                 <TextInput
                   style={styles.input}
                   value={firstName}
-                  onChangeText={setFirstName}
+                  editable={false}
                   placeholder="Prénom"
                   placeholderTextColor={Colors.gray400}
                 />
@@ -116,12 +146,12 @@ export default function EditProfileScreen() {
             </View>
 
             <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>Nom</Text>
-              <View style={styles.inputWrapper}>
+              <Text style={styles.fieldLabel}>Nom (verrouillé KYC)</Text>
+              <View style={[styles.inputWrapper, { opacity: 0.6 }]}>
                 <TextInput
                   style={styles.input}
                   value={lastName}
-                  onChangeText={setLastName}
+                  editable={false}
                   placeholder="Nom"
                   placeholderTextColor={Colors.gray400}
                 />
@@ -129,7 +159,7 @@ export default function EditProfileScreen() {
             </View>
 
             <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>Email</Text>
+              <Text style={styles.fieldLabel}>Email (contactez le support)</Text>
               <View style={[styles.inputWrapper, { opacity: 0.6 }]}>
                 <TextInput
                   style={styles.input}
@@ -156,7 +186,9 @@ export default function EditProfileScreen() {
             </View>
 
             <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>Ville</Text>
+              <Text style={styles.fieldLabel}>
+                Ville (changement limité à 1 fois / 48h)
+              </Text>
               <View style={styles.chipRow}>
                 {CITIES.map((city) => (
                   <TouchableOpacity
@@ -178,6 +210,16 @@ export default function EditProfileScreen() {
                   </TouchableOpacity>
                 ))}
               </View>
+            </View>
+
+            <View style={{ marginTop: 8 }}>
+              <Button
+                size="lg"
+                loading={savingProfile}
+                onPress={handleSave}
+              >
+                Enregistrer le profil
+              </Button>
             </View>
           </View>
 
@@ -241,7 +283,11 @@ export default function EditProfileScreen() {
 
           {/* Save button */}
           <View style={styles.buttonWrap}>
-            <Button size="lg" variant="outline" onPress={handleSave}>
+            <Button
+              size="lg"
+              variant="outline"
+              onPress={() => router.back()}
+            >
               Retour
             </Button>
           </View>
