@@ -205,10 +205,10 @@
 
 ### A3 — Asset library
 - Backend (uses X2)
-  - [ ] Asset model (visuals, videos, logos, briefs)
-  - [ ] Usage tracking per asset
+  - [x] Asset model (visuals, videos, logos, briefs) — `AssetDoc` + per-type size caps + Cloudinary resource_type allowlist
+  - [x] Usage tracking per asset (`assetIds[]` on CampaignDoc, aggregated count via `loadUsageMap`)
 - Web
-  - [ ] Asset library page (upload, list, delete, usage)
+  - [x] Asset library page (upload, list, rename/retype, delete) wired to `/api/me/assets`. Block delete when in use. Cloudinary auto-resource direct upload (image/video/raw) with thumbnails for video.
 
 ### A4 — Campaign creation wizard
 - Backend
