@@ -212,14 +212,15 @@
 
 ### A4 — Campaign creation wizard
 - Backend
-  - [ ] 3-step wizard data model (brief, targeting, budget tier BOOST/GROWTH/LEADER)
-  - [ ] Two campaign types: Flocage (vehicle wraps) + Borne (kiosk ads)
-  - [ ] Targeting (cities, zones, dates, km target / borne count)
-  - [ ] Visual upload — depends on X2
-  - [ ] Draft + publish flow
+  - [x] 3-step wizard data model — `campaignType` (flocage|borne), `budgetTier` (boost|growth|leader), `budgetCents`, optional `borne` sub-object on CampaignDoc
+  - [x] Two campaign types: Flocage (drivers, kmTotal, gps tracking) + Borne (count, targetImpressions, manual tracking)
+  - [x] Targeting (single city, zones[], startDate/endDate, drivers count OR borne count)
+  - [x] Visual upload via `assetIds[]` referencing A3 asset library (POST/PATCH validate existence as ObjectId)
+  - [x] Draft + publish flow — `createDraftCampaign` inserts status=draft, `publishCampaign` flips to upcoming/active. Field-edit gates: `CAMPAIGN_LOCKED_AFTER_PUBLISH` set enforces frozen fields server-side.
+  - [x] REST: GET/POST `/api/me/campaigns`, GET/PATCH/DELETE `/api/me/campaigns/[id]`, POST `/api/me/campaigns/[id]/publish`. All `requireAdvertiser`-gated.
 - Web
-  - [ ] 3-step creation wizard
-  - [ ] Draft list + edit
+  - [x] 3-step creation wizard `EnterpriseCampagneWizard` — Brief → Targeting → Budget. Tier preset buttons auto-fill defaults (overridable). Asset picker reads /api/me/assets.
+  - [x] Draft list + edit — `EnterpriseCampagnesList` wired live, drafts route to `[id]/edit`, published campaigns to detail. Modifier button per row.
 
 ### A5 — Campaign list + detail (own only)
 - Backend
