@@ -224,15 +224,15 @@
 
 ### A5 — Campaign list + detail (own only)
 - Backend
-  - [ ] List filtered by companyId
-  - [ ] Detail with metrics + assigned drivers
-  - [ ] Driver assignment / unassignment (Flocage)
-  - [ ] Borne assignment (Borne type)
+  - [x] List filtered by companyId — `/api/me/campaigns` (already in A4)
+  - [x] Detail with metrics + assigned drivers — `GET /api/me/campaigns/[id]` + `GET /api/me/campaigns/[id]/drivers` join
+  - [x] Driver assignment / unassignment (Flocage) — `POST/DELETE /api/me/campaigns/[id]/drivers[/:driverId]` + `GET .../eligible-drivers` (validated + city match + not busy elsewhere). Atomic capacity check, audit events.
+  - [x] Borne assignment (Borne type) — `POST/DELETE /api/me/campaigns/[id]/terminals[/:terminalId]`. Stub validation against arbitrary IDs (real terminal collection arrives with P2).
 - Mobile (read-only)
-  - [ ] Campaigns list — own only
-  - [ ] Campaign detail view
+  - [x] Campaigns list — own only — `app/(advertiser)/campaigns.tsx` wired to `fetchAdvertiserCampaigns`. Status filter chips, pull-to-refresh, focus-refresh, Flocage/Borne capacity surface.
+  - [x] Campaign detail view — modal opened from list, fetches assigned drivers via `fetchAdvertiserCampaignDrivers`. Shows brief, dates, budget, capacity, drivers/terminals.
 - Web
-  - [ ] Campaigns list + detail + assign action
+  - [x] Campaigns list + detail + assign action — `EnterpriseCampagneDetail` rewritten with tabs (Aperçu / Chauffeurs|Bornes / Assets), live data, computed metrics (period %, driver fill %, km %), assign drawer for eligible drivers, terminal text-input add/remove. Edit (modifier) link to wizard.
 
 ### A6 — Performance + impressions
 - Backend

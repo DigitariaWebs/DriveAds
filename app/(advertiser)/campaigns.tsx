@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -7,98 +7,130 @@ import {
   FlatList,
   Modal,
   StyleSheet,
+  RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors } from '../../constants/Colors';
-import { Typography, FontFamily } from '../../constants/Typography';
-import { Spacing, Radius, Shadows } from '../../constants/Spacing';
-import { Campaign } from '../../constants/Types';
-import { useAuth } from '../../context/AuthContext';
-import { useData } from '../../context/DataContext';
+import { FontFamily } from '../../constants/Typography';
+import { Shadows } from '../../constants/Spacing';
+import { useFocusEffect } from 'expo-router';
 import Badge from '../../components/ui/Badge';
 import BrandLogo from '../../components/BrandLogo';
 import { TAB_BAR_HEIGHT, TAB_BAR_BOTTOM } from '../../constants/TabBarStyle';
+import {
+  AdvertiserAssignedDriver,
+  AdvertiserCampaignDTO,
+  fetchAdvertiserCampaignDrivers,
+  fetchAdvertiserCampaigns,
+} from '../../lib/campaigns-api';
 
-type FilterKey = 'all' | 'available' | 'active' | 'completed';
+type FilterKey = 'all' | 'draft' | 'upcoming' | 'active' | 'completed';
 
 const FILTERS: { key: FilterKey; label: string }[] = [
   { key: 'all', label: 'Toutes' },
-  { key: 'available', label: 'Disponibles' },
+  { key: 'draft', label: 'Brouillon' },
+  { key: 'upcoming', label: 'À venir' },
   { key: 'active', label: 'En cours' },
   { key: 'completed', label: 'Terminées' },
 ];
 
-const statusBadge: Record<string, { variant: 'success' | 'warning' | 'info' | 'neutral'; label: string }> = {
-  available: { variant: 'success', label: 'Disponible' },
-  active: { variant: 'info', label: 'En cours' },
+const STATUS_BADGE: Record<
+  AdvertiserCampaignDTO['status'],
+  { variant: 'success' | 'warning' | 'info' | 'neutral'; label: string }
+> = {
+  draft: { variant: 'warning', label: 'Brouillon' },
+  upcoming: { variant: 'info', label: 'À venir' },
+  active: { variant: 'success', label: 'En cours' },
   completed: { variant: 'neutral', label: 'Terminée' },
-  upcoming: { variant: 'warning', label: 'À venir' },
 };
+
+function formatDateShort(iso: string): string {
+  return new Date(iso).toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: 'short',
+  });
+}
+
+function formatEur(cents: number): string {
+  return `${(cents / 100).toLocaleString('fr-FR', { maximumFractionDigits: 0 })} €`;
+}
 
 export default function AdvertiserCampaignsScreen() {
   const insets = useSafeAreaInsets();
-  const { currentCompany } = useAuth();
-  const { campaigns, drivers } = useData();
   const [filter, setFilter] = useState<FilterKey>('all');
-  const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
+  const [campaigns, setCampaigns] = useState<AdvertiserCampaignDTO[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const companyId = currentCompany?.id ?? 'c1';
-  const companyCampaigns = campaigns.filter((c) => c.companyId === companyId);
+  const [selected, setSelected] = useState<AdvertiserCampaignDTO | null>(null);
+  const [selectedDrivers, setSelectedDrivers] = useState<
+    AdvertiserAssignedDriver[]
+  >([]);
+  const [driversLoading, setDriversLoading] = useState(false);
 
-  const filtered = companyCampaigns.filter((c) => {
-    if (filter === 'all') return true;
-    return c.status === filter;
-  });
+  const reload = useCallback(async (silent = false) => {
+    if (!silent) setError(null);
+    try {
+      const list = await fetchAdvertiserCampaigns();
+      setCampaigns(list);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
 
-  const getAssignedDrivers = (campaign: Campaign) =>
-    drivers.filter((d) => campaign.assignedDriverIds.includes(d.id));
+  useEffect(() => {
+    void reload();
+  }, [reload]);
 
-  const renderCampaignCard = ({ item: campaign }: { item: Campaign }) => {
-    const badge = statusBadge[campaign.status];
+  useFocusEffect(
+    useCallback(() => {
+      void reload(true);
+    }, [reload]),
+  );
+
+  const filtered = useMemo(() => {
+    if (filter === 'all') return campaigns;
+    return campaigns.filter((c) => c.status === filter);
+  }, [campaigns, filter]);
+
+  async function openDetail(c: AdvertiserCampaignDTO) {
+    setSelected(c);
+    setSelectedDrivers([]);
+    if (c.campaignType === 'flocage' && c.assignedDriverIds.length > 0) {
+      setDriversLoading(true);
+      try {
+        const list = await fetchAdvertiserCampaignDrivers(c.id);
+        setSelectedDrivers(list);
+      } catch {
+        /* ignore — modal still works */
+      } finally {
+        setDriversLoading(false);
+      }
+    }
+  }
+
+  function closeDetail() {
+    setSelected(null);
+    setSelectedDrivers([]);
+  }
+
+  if (loading) {
     return (
-      <TouchableOpacity
-        style={styles.campaignCard}
-        onPress={() => setSelectedCampaign(campaign)}
-        activeOpacity={0.7}
-      >
-        <View style={styles.cardHeader}>
-          <BrandLogo domain={campaign.domain} name={campaign.brand} size={36} />
-          <View style={styles.cardInfo}>
-            <Text style={styles.cardTitle} numberOfLines={1}>{campaign.title}</Text>
-            <Text style={styles.cardMeta}>
-              {campaign.city} · {campaign.startDate} → {campaign.endDate}
-            </Text>
-          </View>
-          <Badge variant={badge.variant} label={badge.label} />
-        </View>
-        <View style={styles.cardFooter}>
-          <Text style={styles.cardStat}>
-            {campaign.driversAssigned}/{campaign.driversNeeded} chauffeurs
-          </Text>
-          <Text style={styles.cardReward}>{campaign.reward} €</Text>
-        </View>
-        {campaign.status === 'active' && (
-          <View style={styles.progressRow}>
-            <View style={styles.progressTrack}>
-              <LinearGradient
-                colors={[Colors.navy, Colors.navyLight]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={[styles.progressFill, { width: `${Math.round(campaign.progress * 100)}%` }]}
-              />
-            </View>
-            <Text style={styles.progressLabel}>{Math.round(campaign.progress * 100)}%</Text>
-          </View>
-        )}
-      </TouchableOpacity>
+      <View style={[styles.screen, { paddingTop: insets.top, justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={Colors.navy} />
+      </View>
     );
-  };
+  }
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
-      {/* Header */}
       <View style={styles.header}>
         <View>
           <Text style={styles.headerTitle}>Mes campagnes</Text>
@@ -106,12 +138,14 @@ export default function AdvertiserCampaignsScreen() {
             {filtered.length} campagne{filtered.length > 1 ? 's' : ''}
           </Text>
         </View>
-        <TouchableOpacity style={styles.searchBtn}>
-          <Feather name="search" size={20} color={Colors.navy} />
-        </TouchableOpacity>
       </View>
 
-      {/* Filter chips */}
+      {error && (
+        <View style={styles.errorBox}>
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      )}
+
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -127,7 +161,9 @@ export default function AdvertiserCampaignsScreen() {
               onPress={() => setFilter(f.key)}
               activeOpacity={0.7}
             >
-              <Text style={[styles.filterText, active && styles.filterTextActive]}>
+              <Text
+                style={[styles.filterText, active && styles.filterTextActive]}
+              >
                 {f.label}
               </Text>
             </TouchableOpacity>
@@ -135,120 +171,253 @@ export default function AdvertiserCampaignsScreen() {
         })}
       </ScrollView>
 
-      {/* Campaign list */}
       <FlatList
         data={filtered}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
-        renderItem={renderCampaignCard}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => {
+              setRefreshing(true);
+              void reload(true);
+            }}
+            tintColor={Colors.navy}
+          />
+        }
+        renderItem={({ item }) => {
+          const badge = STATUS_BADGE[item.status];
+          const isFlocage = item.campaignType === 'flocage';
+          const capacity = isFlocage
+            ? `${item.driversAssigned}/${item.driversNeeded} chauffeurs`
+            : `${item.borne?.terminalIds?.length ?? 0}/${item.borne?.count ?? 0} bornes`;
+          return (
+            <TouchableOpacity
+              style={styles.campaignCard}
+              onPress={() => openDetail(item)}
+              activeOpacity={0.7}
+            >
+              <View style={styles.cardHeader}>
+                <BrandLogo
+                  domain={item.domain}
+                  name={item.brand}
+                  size={36}
+                  brandColor={item.brandColor}
+                  logoUrl={item.brandLogoUrl}
+                />
+                <View style={styles.cardInfo}>
+                  <Text style={styles.cardTitle} numberOfLines={1}>
+                    {item.title || item.brand}
+                  </Text>
+                  <Text style={styles.cardMeta}>
+                    {item.city} · {formatDateShort(item.startDate)} →{' '}
+                    {formatDateShort(item.endDate)}
+                  </Text>
+                </View>
+                <Badge variant={badge.variant} label={badge.label} />
+              </View>
+              <View style={styles.cardFooter}>
+                <Text style={styles.cardStat}>{capacity}</Text>
+                <Text style={styles.cardReward}>{formatEur(item.budgetCents)}</Text>
+              </View>
+              {item.status === 'active' && (
+                <View style={styles.progressRow}>
+                  <View style={styles.progressTrack}>
+                    <LinearGradient
+                      colors={[Colors.navy, Colors.navyLight]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={[
+                        styles.progressFill,
+                        { width: `${Math.round(item.progress * 100)}%` },
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.progressLabel}>
+                    {Math.round(item.progress * 100)}%
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          );
+        }}
         ListEmptyComponent={
           <View style={styles.empty}>
             <View style={styles.emptyIcon}>
               <Feather name="folder" size={32} color={Colors.gray300} />
             </View>
-            <Text style={styles.emptyTitle}>Aucune campagne trouvée</Text>
-            <Text style={styles.emptyText}>Essayez un autre filtre</Text>
+            <Text style={styles.emptyTitle}>Aucune campagne</Text>
+            <Text style={styles.emptyText}>
+              Créez votre première campagne depuis le web.
+            </Text>
           </View>
         }
       />
 
-      {/* Detail bottom sheet modal */}
       <Modal
-        visible={selectedCampaign !== null}
+        visible={selected !== null}
         animationType="slide"
         presentationStyle="pageSheet"
-        onRequestClose={() => setSelectedCampaign(null)}
+        onRequestClose={closeDetail}
       >
-        {selectedCampaign && (
+        {selected && (
           <View style={styles.modal}>
             <View style={styles.modalHandle} />
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.modalContent}>
-              {/* Header */}
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.modalContent}
+            >
               <View style={styles.modalHeader}>
-                <BrandLogo domain={selectedCampaign.domain} name={selectedCampaign.brand} size={48} />
+                <BrandLogo
+                  domain={selected.domain}
+                  name={selected.brand}
+                  size={48}
+                  brandColor={selected.brandColor}
+                  logoUrl={selected.brandLogoUrl}
+                />
                 <View style={styles.modalHeaderText}>
-                  <Text style={styles.modalTitle}>{selectedCampaign.title}</Text>
+                  <Text style={styles.modalTitle}>
+                    {selected.title || selected.brand}
+                  </Text>
                   <Badge
-                    variant={statusBadge[selectedCampaign.status].variant}
-                    label={statusBadge[selectedCampaign.status].label}
+                    variant={STATUS_BADGE[selected.status].variant}
+                    label={STATUS_BADGE[selected.status].label}
                   />
                 </View>
               </View>
 
-              {/* Info */}
               <View style={styles.modalInfoCard}>
-                <Text style={styles.modalDescription}>{selectedCampaign.description}</Text>
+                <Text style={styles.modalDescription}>
+                  {selected.description || '—'}
+                </Text>
                 <View style={styles.modalDetailRow}>
                   <Feather name="map-pin" size={16} color={Colors.gray500} />
                   <Text style={styles.modalDetail}>
-                    {selectedCampaign.city} · {selectedCampaign.zones.join(', ')}
+                    {selected.city}
+                    {selected.zones.length > 0
+                      ? ` · ${selected.zones.join(', ')}`
+                      : ''}
                   </Text>
                 </View>
                 <View style={styles.modalDetailRow}>
                   <Feather name="calendar" size={16} color={Colors.gray500} />
                   <Text style={styles.modalDetail}>
-                    {selectedCampaign.startDate} → {selectedCampaign.endDate} ({selectedCampaign.durationDays} jours)
+                    {formatDateShort(selected.startDate)} →{' '}
+                    {formatDateShort(selected.endDate)} ({selected.durationDays}{' '}
+                    jours)
                   </Text>
                 </View>
                 <View style={styles.modalDetailRow}>
                   <Feather name="dollar-sign" size={16} color={Colors.gray500} />
-                  <Text style={styles.modalDetail}>{selectedCampaign.reward} € / véhicule</Text>
+                  <Text style={styles.modalDetail}>
+                    Budget {formatEur(selected.budgetCents)} ·{' '}
+                    {selected.budgetTier.toUpperCase()}
+                  </Text>
                 </View>
+                {selected.campaignType === 'flocage' ? (
+                  <View style={styles.modalDetailRow}>
+                    <Feather name="users" size={16} color={Colors.gray500} />
+                    <Text style={styles.modalDetail}>
+                      {selected.driversAssigned}/{selected.driversNeeded}{' '}
+                      chauffeurs · {formatEur(selected.rewardCents)} / chauffeur
+                    </Text>
+                  </View>
+                ) : (
+                  <View style={styles.modalDetailRow}>
+                    <Feather name="tv" size={16} color={Colors.gray500} />
+                    <Text style={styles.modalDetail}>
+                      {selected.borne?.terminalIds?.length ?? 0}/
+                      {selected.borne?.count ?? 0} bornes ·{' '}
+                      {(selected.borne?.targetImpressions ?? 0).toLocaleString(
+                        'fr-FR',
+                      )}{' '}
+                      impressions visées
+                    </Text>
+                  </View>
+                )}
               </View>
 
-              {/* Progress */}
-              {selectedCampaign.status === 'active' && (
-                <View style={styles.modalProgressCard}>
-                  <Text style={styles.modalSectionTitle}>Progression</Text>
-                  <View style={styles.progressRow}>
-                    <View style={styles.progressTrackLarge}>
-                      <LinearGradient
-                        colors={[Colors.navy, Colors.navyLight]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 0 }}
-                        style={[styles.progressFillLarge, { width: `${Math.round(selectedCampaign.progress * 100)}%` }]}
-                      />
+              {selected.status === 'active' &&
+                selected.campaignType === 'flocage' && (
+                  <View style={styles.modalProgressCard}>
+                    <Text style={styles.modalSectionTitle}>Progression</Text>
+                    <View style={styles.progressRow}>
+                      <View style={styles.progressTrackLarge}>
+                        <LinearGradient
+                          colors={[Colors.navy, Colors.navyLight]}
+                          start={{ x: 0, y: 0 }}
+                          end={{ x: 1, y: 0 }}
+                          style={[
+                            styles.progressFillLarge,
+                            {
+                              width: `${Math.round(selected.progress * 100)}%`,
+                            },
+                          ]}
+                        />
+                      </View>
+                      <Text style={styles.progressLabelLarge}>
+                        {Math.round(selected.progress * 100)}%
+                      </Text>
                     </View>
-                    <Text style={styles.progressLabelLarge}>{Math.round(selectedCampaign.progress * 100)}%</Text>
+                    <Text style={styles.modalKm}>
+                      {selected.kmDone.toLocaleString('fr-FR')} /{' '}
+                      {selected.kmTotal.toLocaleString('fr-FR')} km
+                    </Text>
                   </View>
-                  <Text style={styles.modalKm}>
-                    {selectedCampaign.kmDone.toLocaleString()} / {selectedCampaign.kmTotal.toLocaleString()} km
-                  </Text>
-                </View>
-              )}
+                )}
 
-              {/* Assigned drivers */}
-              {getAssignedDrivers(selectedCampaign).length > 0 && (
+              {selected.campaignType === 'flocage' && (
                 <View style={styles.modalSection}>
                   <Text style={styles.modalSectionTitle}>
-                    Chauffeurs assignés ({getAssignedDrivers(selectedCampaign).length})
+                    Chauffeurs assignés ({selected.driversAssigned})
                   </Text>
-                  {getAssignedDrivers(selectedCampaign).map((driver) => (
-                    <View key={driver.id} style={styles.driverRow}>
-                      <View style={styles.driverAvatar}>
-                        <Text style={styles.driverInitials}>
-                          {driver.firstName[0]}{driver.lastName[0]}
-                        </Text>
+                  {driversLoading ? (
+                    <ActivityIndicator color={Colors.navy} />
+                  ) : selectedDrivers.length === 0 ? (
+                    <Text style={styles.emptyDrivers}>
+                      Aucun chauffeur assigné.
+                    </Text>
+                  ) : (
+                    selectedDrivers.map((d) => (
+                      <View key={d.id} style={styles.driverRow}>
+                        <View style={styles.driverAvatar}>
+                          <Text style={styles.driverInitials}>
+                            {d.firstName[0]}
+                            {d.lastName[0]}
+                          </Text>
+                        </View>
+                        <View style={styles.driverInfo}>
+                          <Text style={styles.driverName}>
+                            {d.firstName} {d.lastName}
+                          </Text>
+                          <Text style={styles.driverMeta}>
+                            {d.city} · {d.rating.toFixed(1)} ★ ·{' '}
+                            {d.totalKm.toLocaleString('fr-FR')} km
+                          </Text>
+                        </View>
                       </View>
-                      <View style={styles.driverInfo}>
-                        <Text style={styles.driverName}>
-                          {driver.firstName} {driver.lastName}
-                        </Text>
-                        <Text style={styles.driverMeta}>
-                          {driver.vehicleModel} · {driver.city}
-                        </Text>
-                      </View>
-                    </View>
-                  ))}
+                    ))
+                  )}
                 </View>
               )}
 
-              {/* Close button */}
-              <TouchableOpacity
-                style={styles.closeBtn}
-                onPress={() => setSelectedCampaign(null)}
-              >
+              {selected.campaignType === 'borne' &&
+                (selected.borne?.terminalIds?.length ?? 0) > 0 && (
+                  <View style={styles.modalSection}>
+                    <Text style={styles.modalSectionTitle}>
+                      Terminaux assignés
+                    </Text>
+                    {(selected.borne?.terminalIds ?? []).map((tid) => (
+                      <View key={tid} style={styles.terminalRow}>
+                        <Feather name="tv" size={14} color={Colors.gray500} />
+                        <Text style={styles.terminalText}>{tid}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
+              <TouchableOpacity style={styles.closeBtn} onPress={closeDetail}>
                 <Text style={styles.closeBtnText}>Fermer</Text>
               </TouchableOpacity>
             </ScrollView>
@@ -260,12 +429,7 @@ export default function AdvertiserCampaignsScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: Colors.navyTint,
-  },
-
-  // Header
+  screen: { flex: 1, backgroundColor: Colors.navyTint },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -274,36 +438,24 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 16,
   },
-  headerTitle: {
-    fontFamily: FontFamily.black,
-    fontSize: 22,
-    color: Colors.black,
-  },
+  headerTitle: { fontFamily: FontFamily.black, fontSize: 22, color: Colors.black },
   headerSubtitle: {
     fontFamily: FontFamily.regular,
     fontSize: 12,
     color: Colors.gray500,
     marginTop: 2,
   },
-  searchBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 14,
-    backgroundColor: Colors.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...Shadows.sm,
+  errorBox: {
+    marginHorizontal: 20,
+    marginBottom: 12,
+    padding: 12,
+    backgroundColor: 'rgba(239,68,68,0.08)',
+    borderRadius: 12,
   },
+  errorText: { color: '#b91c1c', fontSize: 13, fontFamily: FontFamily.medium },
 
-  // Filters
-  filterScroll: {
-    flexGrow: 0,
-  },
-  filterRow: {
-    paddingHorizontal: 20,
-    paddingBottom: 14,
-    gap: 8,
-  },
+  filterScroll: { flexGrow: 0 },
+  filterRow: { paddingHorizontal: 20, paddingBottom: 14, gap: 8 },
   filterChip: {
     paddingHorizontal: 16,
     height: 32,
@@ -314,31 +466,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.gray200,
   },
-  filterChipActive: {
-    backgroundColor: Colors.navy,
-    borderColor: Colors.navy,
-  },
-  filterText: {
-    fontFamily: FontFamily.medium,
-    fontSize: 12,
-    color: Colors.gray600,
-  },
-  filterTextActive: {
-    color: Colors.white,
-  },
+  filterChipActive: { backgroundColor: Colors.navy, borderColor: Colors.navy },
+  filterText: { fontFamily: FontFamily.medium, fontSize: 12, color: Colors.gray600 },
+  filterTextActive: { color: Colors.white },
 
-  // List
   listContent: {
     paddingHorizontal: 20,
     paddingBottom: TAB_BAR_HEIGHT + TAB_BAR_BOTTOM + 16,
   },
 
-  // Empty
-  empty: {
-    alignItems: 'center',
-    paddingTop: 80,
-    gap: 8,
-  },
+  empty: { alignItems: 'center', paddingTop: 80, gap: 8 },
   emptyIcon: {
     width: 64,
     height: 64,
@@ -348,18 +485,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 8,
   },
-  emptyTitle: {
-    fontFamily: FontFamily.bold,
-    fontSize: 15,
-    color: Colors.gray700,
-  },
+  emptyTitle: { fontFamily: FontFamily.bold, fontSize: 15, color: Colors.gray700 },
   emptyText: {
     fontFamily: FontFamily.regular,
     fontSize: 12,
     color: Colors.gray400,
+    textAlign: 'center',
+    paddingHorizontal: 20,
   },
 
-  // Campaign card
   campaignCard: {
     backgroundColor: Colors.white,
     borderRadius: 20,
@@ -374,16 +508,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  cardInfo: {
-    flex: 1,
-    marginLeft: 10,
-    marginRight: 8,
-  },
-  cardTitle: {
-    fontFamily: FontFamily.bold,
-    fontSize: 14,
-    color: Colors.black,
-  },
+  cardInfo: { flex: 1, marginLeft: 10, marginRight: 8 },
+  cardTitle: { fontFamily: FontFamily.bold, fontSize: 14, color: Colors.black },
   cardMeta: {
     fontFamily: FontFamily.regular,
     fontSize: 11,
@@ -395,16 +521,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  cardStat: {
-    fontFamily: FontFamily.regular,
-    fontSize: 12,
-    color: Colors.gray600,
-  },
-  cardReward: {
-    fontFamily: FontFamily.bold,
-    fontSize: 15,
-    color: Colors.navy,
-  },
+  cardStat: { fontFamily: FontFamily.regular, fontSize: 12, color: Colors.gray600 },
+  cardReward: { fontFamily: FontFamily.bold, fontSize: 15, color: Colors.navy },
   progressRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -418,10 +536,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     overflow: 'hidden',
   },
-  progressFill: {
-    height: 7,
-    borderRadius: 4,
-  },
+  progressFill: { height: 7, borderRadius: 4 },
   progressLabel: {
     fontFamily: FontFamily.bold,
     fontSize: 12,
@@ -430,11 +545,7 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
 
-  // Modal
-  modal: {
-    flex: 1,
-    backgroundColor: Colors.navyTint,
-  },
+  modal: { flex: 1, backgroundColor: Colors.navyTint },
   modalHandle: {
     width: 40,
     height: 4,
@@ -444,25 +555,14 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 12,
   },
-  modalContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 40,
-  },
+  modalContent: { paddingHorizontal: 20, paddingBottom: 40 },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 20,
   },
-  modalHeaderText: {
-    flex: 1,
-    marginLeft: 12,
-    gap: 6,
-  },
-  modalTitle: {
-    fontFamily: FontFamily.bold,
-    fontSize: 17,
-    color: Colors.black,
-  },
+  modalHeaderText: { flex: 1, marginLeft: 12, gap: 6 },
+  modalTitle: { fontFamily: FontFamily.bold, fontSize: 17, color: Colors.black },
   modalInfoCard: {
     backgroundColor: Colors.white,
     borderRadius: 20,
@@ -507,10 +607,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     overflow: 'hidden',
   },
-  progressFillLarge: {
-    height: 8,
-    borderRadius: 4,
-  },
+  progressFillLarge: { height: 8, borderRadius: 4 },
   progressLabelLarge: {
     fontFamily: FontFamily.bold,
     fontSize: 13,
@@ -524,16 +621,17 @@ const styles = StyleSheet.create({
     color: Colors.gray500,
     marginTop: 6,
   },
-
-  // Drivers
-  modalSection: {
-    marginBottom: 12,
-  },
+  modalSection: { marginBottom: 12 },
   modalSectionTitle: {
     fontFamily: FontFamily.bold,
     fontSize: 15,
     color: Colors.black,
     marginBottom: 12,
+  },
+  emptyDrivers: {
+    fontFamily: FontFamily.regular,
+    fontSize: 12,
+    color: Colors.gray500,
   },
   driverRow: {
     flexDirection: 'row',
@@ -555,10 +653,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.white,
   },
-  driverInfo: {
-    flex: 1,
-    marginLeft: 10,
-  },
+  driverInfo: { flex: 1, marginLeft: 10 },
   driverName: {
     fontFamily: FontFamily.medium,
     fontSize: 13,
@@ -569,8 +664,19 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.gray500,
   },
-
-  // Close
+  terminalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.gray100,
+  },
+  terminalText: {
+    fontFamily: FontFamily.medium,
+    fontSize: 13,
+    color: Colors.black,
+  },
   closeBtn: {
     alignItems: 'center',
     paddingVertical: 14,

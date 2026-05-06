@@ -107,3 +107,49 @@ export async function acceptCampaignApi(
   );
   return toMobileCampaign(res.campaign, driverId);
 }
+
+// --- Advertiser-side (read-only on mobile) --------------------------------
+
+export type AdvertiserCampaignDTO = CampaignDTO & {
+  campaignType: 'flocage' | 'borne';
+  budgetTier: 'boost' | 'growth' | 'leader';
+  budgetCents: number;
+  borne?: { count: number; targetImpressions: number; terminalIds?: string[] };
+  assetIds?: string[];
+};
+
+export type AdvertiserAssignedDriver = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  city: string;
+  rating: number;
+  campaignsDone: number;
+  totalKm: number;
+  phone: string;
+};
+
+export async function fetchAdvertiserCampaigns(): Promise<AdvertiserCampaignDTO[]> {
+  const res = await apiFetch<{ campaigns: AdvertiserCampaignDTO[] }>(
+    '/api/me/campaigns',
+  );
+  return res.campaigns;
+}
+
+export async function fetchAdvertiserCampaign(
+  id: string,
+): Promise<AdvertiserCampaignDTO> {
+  const res = await apiFetch<{ campaign: AdvertiserCampaignDTO }>(
+    `/api/me/campaigns/${id}`,
+  );
+  return res.campaign;
+}
+
+export async function fetchAdvertiserCampaignDrivers(
+  id: string,
+): Promise<AdvertiserAssignedDriver[]> {
+  const res = await apiFetch<{ drivers: AdvertiserAssignedDriver[] }>(
+    `/api/me/campaigns/${id}/drivers`,
+  );
+  return res.drivers;
+}

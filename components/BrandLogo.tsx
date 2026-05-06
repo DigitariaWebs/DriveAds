@@ -8,6 +8,10 @@ type Props = {
   domain: string;
   name: string;
   size?: number;
+  // When the campaign/company has a real uploaded logo (A1 brand identity),
+  // use it instead of falling back to clearbit/google favicons.
+  logoUrl?: string;
+  brandColor?: string;
 };
 
 const brandColors = [
@@ -27,17 +31,33 @@ function getColorForName(name: string): string {
   return brandColors[Math.abs(hash) % brandColors.length];
 }
 
-export default function BrandLogo({ domain, name, size = 48 }: Props) {
+export default function BrandLogo({
+  domain,
+  name,
+  size = 48,
+  logoUrl,
+  brandColor,
+}: Props) {
   const [fallbackLevel, setFallbackLevel] = useState(0);
 
   const clearbitUrl = `https://logo.clearbit.com/${domain}?size=256`;
   const googleUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
   const initial = (name || '?')[0].toUpperCase();
-  const bgColor = getColorForName(name);
+  const bgColor = brandColor ?? getColorForName(name);
 
-  if (fallbackLevel >= 2) {
+  // Real uploaded logo wins. Falls back to clearbit/google then initial circle.
+  const sources: string[] = [];
+  if (logoUrl) sources.push(logoUrl);
+  sources.push(clearbitUrl, googleUrl);
+
+  if (fallbackLevel >= sources.length) {
     return (
-      <View style={[styles.initialCircle, { width: size, height: size, borderRadius: size / 2, backgroundColor: bgColor }]}>
+      <View
+        style={[
+          styles.initialCircle,
+          { width: size, height: size, borderRadius: size / 2, backgroundColor: bgColor },
+        ]}
+      >
         <Text style={[styles.initial, { fontSize: size * 0.4 }]}>{initial}</Text>
       </View>
     );
@@ -45,7 +65,7 @@ export default function BrandLogo({ domain, name, size = 48 }: Props) {
 
   return (
     <Image
-      source={{ uri: fallbackLevel === 0 ? clearbitUrl : googleUrl }}
+      source={{ uri: sources[fallbackLevel] }}
       style={[styles.image, { width: size, height: size, borderRadius: size / 2 }]}
       contentFit="cover"
       onError={() => setFallbackLevel((prev) => prev + 1)}
