@@ -195,13 +195,13 @@
 
 ### A2 — Team management
 - Backend
-  - [ ] Invite by email (Better Auth organization plugin)
-  - [ ] Roles: admin / editor / viewer
-  - [ ] Last-seen tracking
-  - [ ] Pending invites list
-  - [ ] Invite acceptance screen
+  - [x] Invite by email (Better Auth organization plugin, custom access-control with admin/editor/viewer)
+  - [x] Roles: admin / editor / viewer (org-level access-control + permission matrix)
+  - [x] Last-seen tracking (derived from session.updatedAt, joined into member list)
+  - [x] Pending invites list (`/api/me/team` GET combines members + invitations)
+  - [x] Invite acceptance screen (`/invite/[id]` page handles logged-in / wrong-account / no-session cases; accept POST denormalizes companyId + role:team_member onto user doc)
 - Web
-  - [ ] Team page (list, invite, remove, role change)
+  - [x] Team page (list, invite, remove, role change, cancel/resend invitations) wired to live API in `EnterpriseEquipe.tsx`
 
 ### A3 — Asset library
 - Backend (uses X2)
