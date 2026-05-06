@@ -91,6 +91,8 @@ export type Campaign = {
   assignedDriverIds: string[];
   trackingMode: TrackingMode;
   heroImage?: any;
+  brandColor?: string;
+  brandLogoUrl?: string;
 };
 
 export type NotificationItem = {

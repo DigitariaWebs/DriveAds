@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Campaign } from '../constants/Types';
@@ -55,10 +55,35 @@ export default function CampaignCard({ campaign, onPress }: Props) {
       onPress={onPress}
       activeOpacity={0.85}
     >
+      {/* Brand color accent strip */}
+      {campaign.brandColor && (
+        <View
+          style={[
+            styles.brandStrip,
+            { backgroundColor: campaign.brandColor },
+          ]}
+        />
+      )}
+
       {/* Top row */}
       <View style={styles.topRow}>
-        <View style={styles.logoWrap}>
-          <BrandLogo domain={campaign.domain} name={campaign.brand} size={40} />
+        <View
+          style={[
+            styles.logoWrap,
+            campaign.brandColor
+              ? { backgroundColor: `${campaign.brandColor}1A` }
+              : null,
+          ]}
+        >
+          {campaign.brandLogoUrl ? (
+            <Image
+              source={{ uri: campaign.brandLogoUrl }}
+              style={{ width: 40, height: 40, borderRadius: 12 }}
+              resizeMode="cover"
+            />
+          ) : (
+            <BrandLogo domain={campaign.domain} name={campaign.brand} size={40} />
+          )}
         </View>
         <View style={styles.topInfo}>
           <Text style={styles.brand}>{campaign.brand.toUpperCase()}</Text>
@@ -129,7 +154,15 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 1,
     borderColor: Colors.gray100,
+    overflow: 'hidden',
     ...Shadows.sm,
+  },
+  brandStrip: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 3,
   },
 
   // Top row

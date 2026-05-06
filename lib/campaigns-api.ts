@@ -23,6 +23,8 @@ type CampaignDTO = {
   assignedDriverIds: string[];
   trackingMode: 'gps' | 'manual';
   heroImageUrl?: string;
+  brandColor?: string;
+  brandLogoUrl?: string;
 };
 
 // Backend status `upcoming` with capacity → mobile UX status `available`
@@ -60,6 +62,8 @@ function toMobileCampaign(dto: CampaignDTO, driverId?: string | null): Campaign 
     driversAssigned: dto.driversAssigned,
     assignedDriverIds: dto.assignedDriverIds,
     trackingMode: dto.trackingMode,
+    brandColor: dto.brandColor,
+    brandLogoUrl: dto.brandLogoUrl,
   };
 }
 

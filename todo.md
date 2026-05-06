@@ -186,11 +186,12 @@
 
 ### A1 — Company profile + brand
 - Backend
-  - [ ] Update company profile (legal info, sector, contact, brand color, logo)
+  - [x] Update company profile (legal info, sector, contact, brand color, logo via Cloudinary signed upload)
 - Mobile (read-only)
-  - [ ] Profile view
+  - [x] Advertiser profile view (live data, logo + brand color tint, legal info section)
+  - [x] Driver-facing campaign cards display brand color strip + logo
 - Web
-  - [ ] Edit profile + brand
+  - [x] Edit profile + brand identity + legal info (3-tab paramètres page)
 
 ### A2 — Team management
 - Backend

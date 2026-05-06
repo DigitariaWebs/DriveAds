@@ -1,5 +1,6 @@
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
-import { router } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Image, RefreshControl } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/Colors';
@@ -10,6 +11,7 @@ import { useData } from '../../context/DataContext';
 import Badge from '../../components/ui/Badge';
 import BrandLogo from '../../components/BrandLogo';
 import { TAB_BAR_HEIGHT, TAB_BAR_BOTTOM } from '../../constants/TabBarStyle';
+import { fetchMyCompany, type CompanyProfile } from '../../lib/profile-api';
 
 type MenuItem = {
   icon: keyof typeof Feather.glyphMap;
@@ -31,7 +33,55 @@ export default function AdvertiserProfileScreen() {
   const { currentCompany, logout } = useAuth();
   const { campaigns } = useData();
 
-  const company = currentCompany;
+  const [liveCompany, setLiveCompany] = useState<CompanyProfile | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const c = await fetchMyCompany();
+      setLiveCompany(c);
+    } catch {
+      setLiveCompany(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
+
+  // Prefer live company doc; fallback fields from AuthContext snapshot when
+  // /api/me/company hasn't replied yet.
+  const company: CompanyProfile | null =
+    liveCompany ??
+    (currentCompany
+      ? {
+          id: currentCompany.id,
+          companyName: currentCompany.companyName,
+          contactName: currentCompany.contactName,
+          phone: currentCompany.phone,
+          domain: currentCompany.domain,
+          sector: currentCompany.sector,
+          city: currentCompany.city,
+          website: currentCompany.website,
+          description: currentCompany.description,
+          founded: currentCompany.founded,
+          headquarters: currentCompany.headquarters,
+          employees: currentCompany.employees,
+          status: currentCompany.status,
+          budgetTotal: currentCompany.budgetTotal,
+          campaignsCount: currentCompany.campaignsCount,
+          createdAt: '',
+        }
+      : null);
   const companyId = company?.id ?? 'c1';
 
   const companyCampaigns = campaigns.filter((c) => c.companyId === companyId);
@@ -54,14 +104,36 @@ export default function AdvertiserProfileScreen() {
         style={styles.flex}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={loading}
+            onRefresh={load}
+            tintColor={Colors.navy}
+          />
+        }
       >
         {/* Avatar + Name */}
-        <View style={styles.profileHeader}>
-          <BrandLogo
-            domain={company?.domain ?? 'company.com'}
-            name={company?.companyName ?? 'E'}
-            size={80}
-          />
+        <View
+          style={[
+            styles.profileHeader,
+            company?.brandColor
+              ? { backgroundColor: `${company.brandColor}1A`, borderRadius: 20 }
+              : null,
+          ]}
+        >
+          {company?.logo?.url || company?.logoUrl ? (
+            <Image
+              source={{ uri: company.logo?.url ?? company.logoUrl! }}
+              style={{ width: 80, height: 80, borderRadius: 20 }}
+              resizeMode="cover"
+            />
+          ) : (
+            <BrandLogo
+              domain={company?.domain ?? 'company.com'}
+              name={company?.companyName ?? 'E'}
+              size={80}
+            />
+          )}
           <Text style={styles.name}>{company?.companyName ?? 'Annonceur'}</Text>
           <View style={styles.badgeRow}>
             {company?.sector && <Badge variant="navy" label={company.sector} />}
@@ -98,12 +170,6 @@ export default function AdvertiserProfileScreen() {
           </View>
           <View style={styles.infoRow}>
             <View style={styles.infoIconWrap}>
-              <Feather name="mail" size={16} color={Colors.navy} />
-            </View>
-            <Text style={styles.infoValue}>{company?.email ?? '—'}</Text>
-          </View>
-          <View style={styles.infoRow}>
-            <View style={styles.infoIconWrap}>
               <Feather name="phone" size={16} color={Colors.navy} />
             </View>
             <Text style={styles.infoValue}>{company?.phone ?? '—'}</Text>
@@ -116,6 +182,56 @@ export default function AdvertiserProfileScreen() {
               <Text style={styles.infoValue}>{company.website}</Text>
             </View>
           ) : null}
+        </View>
+
+        {/* Legal info (read-only — edit on web) */}
+        {(company?.legalName ||
+          company?.siret ||
+          company?.vatNumber ||
+          company?.legalForm) && (
+          <View style={styles.infoCard}>
+            <Text style={styles.cardTitle}>Informations légales</Text>
+            {company.legalName ? (
+              <View style={styles.infoRow}>
+                <View style={styles.infoIconWrap}>
+                  <Feather name="briefcase" size={16} color={Colors.navy} />
+                </View>
+                <Text style={styles.infoValue}>{company.legalName}</Text>
+              </View>
+            ) : null}
+            {company.legalForm ? (
+              <View style={styles.infoRow}>
+                <View style={styles.infoIconWrap}>
+                  <Feather name="file-text" size={16} color={Colors.navy} />
+                </View>
+                <Text style={styles.infoValue}>{company.legalForm}</Text>
+              </View>
+            ) : null}
+            {company.siret ? (
+              <View style={styles.infoRow}>
+                <View style={styles.infoIconWrap}>
+                  <Feather name="hash" size={16} color={Colors.navy} />
+                </View>
+                <Text style={styles.infoValue}>SIRET : {company.siret}</Text>
+              </View>
+            ) : null}
+            {company.vatNumber ? (
+              <View style={styles.infoRow}>
+                <View style={styles.infoIconWrap}>
+                  <Feather name="hash" size={16} color={Colors.navy} />
+                </View>
+                <Text style={styles.infoValue}>TVA : {company.vatNumber}</Text>
+              </View>
+            ) : null}
+          </View>
+        )}
+
+        {/* Edit hint */}
+        <View style={styles.editHint}>
+          <Feather name="info" size={12} color={Colors.gray500} />
+          <Text style={styles.editHintText}>
+            Pour modifier votre profil et votre logo, utilisez le tableau de bord web.
+          </Text>
         </View>
 
         {/* Menu list */}
@@ -292,5 +408,19 @@ const styles = StyleSheet.create({
   },
   menuLabelDanger: {
     color: Colors.danger,
+  },
+  editHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginBottom: 12,
+    paddingHorizontal: 8,
+  },
+  editHintText: {
+    fontFamily: FontFamily.regular,
+    fontSize: 11,
+    color: Colors.gray500,
+    textAlign: 'center',
   },
 });
