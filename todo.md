@@ -299,13 +299,13 @@
 
 ### P4 — Ads
 - Backend
-  - [ ] Ad playback schedule per terminal (live, scheduled, frequency, time windows)
-  - [ ] Ad impression counter per terminal
-  - [ ] Partner ad-issue reports
+  - [x] Ad playback schedule per terminal (live, scheduled, frequency, time windows)
+  - [x] Ad impression counter per terminal
+  - [x] Partner ad-issue reports
 - Mobile (read-only)
-  - [ ] Ads screen view
+  - [x] Ads screen view
 - Web
-  - [ ] Ads schedule + report action + impressions
+  - [x] Ads schedule + report action + impressions
 
 ### P5 — Revenue
 - Backend
