@@ -309,14 +309,14 @@
 
 ### P5 — Revenue
 - Backend
-  - [ ] Terminal revenue split (sprays + ads share)
-  - [ ] Revenue history + payout schedule
-  - [ ] Monthly target tracking
-  - [ ] Statement export
+  - [x] Terminal revenue split (sprays + ads share)
+  - [x] Revenue history + payout schedule
+  - [x] Monthly target tracking
+  - [x] Statement export
 - Mobile (read-only)
-  - [ ] Revenue screen (history, transactions)
+  - [x] Revenue screen (history, transactions)
 - Web
-  - [ ] Revenue page + payout schedule + statement export
+  - [x] Revenue page + payout schedule + statement export
 
 ### P6 — Notifications (partner)
 - Backend (uses X3)
