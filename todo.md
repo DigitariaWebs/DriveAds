@@ -124,7 +124,7 @@
 ### D4 — Documents upload + validation
 - Backend
   - [x] Document model (license, registration, insurance, RIB, vehicle photos)
-  - [x] Upload endpoint — Cloudinary signed direct upload + `/api/me/documents` POST
+  - [x] Upload endpoint
   - [x] Validation workflow (admin approve/reject per doc type)
   - [x] `documentsApproved` flag on driver (renamed from `documentsUploaded`)
 - Mobile
@@ -205,7 +205,7 @@
 
 ### A3 — Asset library
 - Backend (uses X2)
-  - [x] Asset model (visuals, videos, logos, briefs) — `AssetDoc` + per-type size caps + Cloudinary resource_type allowlist
+  - [x] Asset model (visuals, videos, logos, briefs)
   - [x] Usage tracking per asset (`assetIds[]` on CampaignDoc, aggregated count via `loadUsageMap`)
 - Web
   - [x] Asset library page (upload, list, rename/retype, delete) wired to `/api/me/assets`. Block delete when in use. Cloudinary auto-resource direct upload (image/video/raw) with thumbnails for video.
@@ -216,23 +216,23 @@
   - [x] Two campaign types: Flocage (drivers, kmTotal, gps tracking) + Borne (count, targetImpressions, manual tracking)
   - [x] Targeting (single city, zones[], startDate/endDate, drivers count OR borne count)
   - [x] Visual upload via `assetIds[]` referencing A3 asset library (POST/PATCH validate existence as ObjectId)
-  - [x] Draft + publish flow — `createDraftCampaign` inserts status=draft, `publishCampaign` flips to upcoming/active. Field-edit gates: `CAMPAIGN_LOCKED_AFTER_PUBLISH` set enforces frozen fields server-side.
+  - [x] Draft + publish flow
   - [x] REST: GET/POST `/api/me/campaigns`, GET/PATCH/DELETE `/api/me/campaigns/[id]`, POST `/api/me/campaigns/[id]/publish`. All `requireAdvertiser`-gated.
 - Web
-  - [x] 3-step creation wizard `EnterpriseCampagneWizard` — Brief → Targeting → Budget. Tier preset buttons auto-fill defaults (overridable). Asset picker reads /api/me/assets.
-  - [x] Draft list + edit — `EnterpriseCampagnesList` wired live, drafts route to `[id]/edit`, published campaigns to detail. Modifier button per row.
+  - [x] 3-step creation wizard
+  - [x] Draft list + edit
 
 ### A5 — Campaign list + detail (own only)
 - Backend
-  - [x] List filtered by companyId — `/api/me/campaigns` (already in A4)
-  - [x] Detail with metrics + assigned drivers — `GET /api/me/campaigns/[id]` + `GET /api/me/campaigns/[id]/drivers` join
-  - [x] Driver assignment / unassignment (Flocage) — `POST/DELETE /api/me/campaigns/[id]/drivers[/:driverId]` + `GET .../eligible-drivers` (validated + city match + not busy elsewhere). Atomic capacity check, audit events.
-  - [x] Borne assignment (Borne type) — `POST/DELETE /api/me/campaigns/[id]/terminals[/:terminalId]`. Stub validation against arbitrary IDs (real terminal collection arrives with P2).
+  - [x] List filtered by companyId
+  - [x] Detail with metrics + assigned drivers
+  - [x] Driver assignment / unassignment (Flocage)
+  - [x] Borne assignment (Borne type)
 - Mobile (read-only)
-  - [x] Campaigns list — own only — `app/(advertiser)/campaigns.tsx` wired to `fetchAdvertiserCampaigns`. Status filter chips, pull-to-refresh, focus-refresh, Flocage/Borne capacity surface.
-  - [x] Campaign detail view — modal opened from list, fetches assigned drivers via `fetchAdvertiserCampaignDrivers`. Shows brief, dates, budget, capacity, drivers/terminals.
+  - [x] Campaigns list — own only
+  - [x] Campaign detail view
 - Web
-  - [x] Campaigns list + detail + assign action — `EnterpriseCampagneDetail` rewritten with tabs (Aperçu / Chauffeurs|Bornes / Assets), live data, computed metrics (period %, driver fill %, km %), assign drawer for eligible drivers, terminal text-input add/remove. Edit (modifier) link to wizard.
+  - [x] Campaigns list + detail + assign action
 
 ### A6 — Performance + impressions
 - Backend
@@ -268,11 +268,11 @@
 
 ### P1 — Partner profile
 - Backend
-  - [ ] Update partner profile (business, manager, address, hours)
+  - [x] Update partner profile (business, manager, address, hours)
 - Mobile (read-only)
-  - [ ] Profile view
+  - [x] Profile view
 - Web
-  - [ ] Edit profile
+  - [x] Edit profile
 
 ### P2 — Terminals (bornes)
 - Backend

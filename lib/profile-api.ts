@@ -31,6 +31,29 @@ export async function fetchMyCompany(): Promise<CompanyProfile> {
   return res.company;
 }
 
+export type PartnerProfile = {
+  id: string;
+  businessName: string;
+  managerName: string;
+  phone: string;
+  address: string;
+  city: string;
+  openingHours: string;
+  monthlySprayRevenue: number;
+  monthlyAdsRevenue: number;
+  status: 'pending' | 'validated' | 'rejected';
+  createdAt: string;
+};
+
+export async function fetchMyPartner(): Promise<{
+  partner: PartnerProfile;
+  email: string;
+}> {
+  return apiFetch<{ partner: PartnerProfile; email: string }>(
+    '/api/me/partner',
+  );
+}
+
 export type ProfileUpdateInput = {
   phone?: string;
   city?: string;
