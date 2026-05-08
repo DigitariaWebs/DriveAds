@@ -276,14 +276,14 @@
 
 ### P2 — Terminals (bornes)
 - Backend
-  - [ ] Terminal registry (coords, venue type, partner)
-  - [ ] Status (online/maintenance/offline) + uptime
-  - [ ] Heartbeat ingestion + last sync
-  - [ ] Maintenance scheduling
+  - [x] Terminal registry (coords, venue type, partner)
+  - [x] Status (online/maintenance/offline) + uptime
+  - [x] Heartbeat ingestion + last sync
+  - [x] Maintenance scheduling
 - Mobile (read-only)
-  - [ ] Home — terminal status summary
+  - [x] Home — terminal status summary
 - Web
-  - [ ] Terminal list + map + status detail
+  - [x] Terminal list + map + status detail
 
 ### P3 — Stock
 - Backend

@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
@@ -7,16 +8,74 @@ import { Colors } from '../../constants/Colors';
 import { FontFamily } from '../../constants/Typography';
 import { TAB_BAR_HEIGHT, TAB_BAR_BOTTOM } from '../../constants/TabBarStyle';
 import { useAuth } from '../../context/AuthContext';
-import { partnerAds, partnerNotifications, partnerStock, partnerTerminal } from '../../mocks/partner';
+import { partnerAds, partnerNotifications, partnerStock } from '../../mocks/partner';
 import PartnerSignOutButton from '../../components/PartnerSignOutButton';
+import { fetchMyTerminals, type Terminal } from '../../lib/terminals-api';
+
+const MONTHLY_TARGET_FALLBACK = 2100;
+
+function formatRelative(iso?: string): string {
+  if (!iso) return 'jamais';
+  const diffMs = Date.now() - new Date(iso).getTime();
+  if (diffMs < 60_000) return 'à l\'instant';
+  if (diffMs < 3600_000) return `il y a ${Math.floor(diffMs / 60_000)} min`;
+  if (diffMs < 86400_000) return `il y a ${Math.floor(diffMs / 3600_000)} h`;
+  return `il y a ${Math.floor(diffMs / 86400_000)} j`;
+}
+
+function statusLabel(s: Terminal['status']): string {
+  if (s === 'online') return 'En ligne';
+  if (s === 'maintenance') return 'Maintenance';
+  return 'Hors ligne';
+}
 
 export default function PartnerHomeScreen() {
   const insets = useSafeAreaInsets();
   const { currentPartner } = useAuth();
+  const [terminals, setTerminals] = useState<Terminal[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchMyTerminals()
+      .then((t) => { if (!cancelled) setTerminals(t); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const onlineCount = terminals.filter((t) => t.status === 'online').length;
+  const totalCount = terminals.length;
+  const fleetStatus: Terminal['status'] = totalCount === 0
+    ? 'offline'
+    : onlineCount === totalCount
+      ? 'online'
+      : onlineCount === 0
+        ? 'offline'
+        : 'maintenance'; // partial = treat as warning
+  const fleetStatusLabel = totalCount === 0
+    ? 'Aucune borne'
+    : `${onlineCount}/${totalCount} en ligne`;
+  const totalSpraysToday = terminals.reduce((sum, t) => sum + t.spraysToday, 0);
+  const lastSyncIso = terminals
+    .map((t) => t.lastHeartbeatAt)
+    .filter(Boolean)
+    .sort()
+    .pop();
+  const upcomingMaint = terminals
+    .map((t) => t.activeMaintenance?.endsAt)
+    .filter(Boolean)[0];
+
   const lowStock = partnerStock.filter((p) => p.level < 50).length;
   const activeAds = partnerAds.filter((ad) => ad.status === 'En ligne');
   const totalRevenue = (currentPartner?.monthlySprayRevenue ?? 0) + (currentPartner?.monthlyAdsRevenue ?? 0);
-  const target = Math.min(100, Math.round((totalRevenue / partnerTerminal.monthlyTarget) * 100));
+  const target = Math.min(100, Math.round((totalRevenue / MONTHLY_TARGET_FALLBACK) * 100));
+
+  const heroSub = totalCount === 0
+    ? `Aucune borne · ${currentPartner?.city ?? 'Paris'}`
+    : totalCount === 1
+      ? `Borne ${terminals[0].code} · ${terminals[0].city}`
+      : `${totalCount} bornes · ${currentPartner?.city ?? 'Paris'}`;
 
   return (
     <View style={styles.screen}>
@@ -33,7 +92,7 @@ export default function PartnerHomeScreen() {
           <View style={styles.heroTop}>
             <View style={{ flex: 1 }}>
               <Text style={styles.heroTitle}>{currentPartner?.businessName ?? 'Partenaire'}</Text>
-              <Text style={styles.heroSub}>Borne {partnerTerminal.id} · {currentPartner?.city ?? 'Paris'}</Text>
+              <Text style={styles.heroSub}>{heroSub}</Text>
             </View>
             <View style={styles.heroActions}>
               <TouchableOpacity style={styles.bell} onPress={() => router.push('/(partner)/notifications')}>
@@ -45,10 +104,15 @@ export default function PartnerHomeScreen() {
 
           <View style={styles.statusHeader}>
             <View>
-              <Text style={styles.statusLabel}>Statut borne</Text>
+              <Text style={styles.statusLabel}>Statut flotte</Text>
               <View style={styles.statusRow}>
-                <View style={styles.statusDot} />
-                <Text style={styles.statusText}>{partnerTerminal.status}</Text>
+                <View style={[
+                  styles.statusDot,
+                  fleetStatus === 'online' && { backgroundColor: Colors.success },
+                  fleetStatus === 'offline' && { backgroundColor: Colors.gray400 },
+                  fleetStatus === 'maintenance' && { backgroundColor: Colors.warning },
+                ]} />
+                <Text style={styles.statusText}>{loading ? '…' : fleetStatusLabel}</Text>
               </View>
             </View>
             <TouchableOpacity style={styles.heroButton} onPress={() => router.push('/(partner)/profile')}>
@@ -58,9 +122,9 @@ export default function PartnerHomeScreen() {
           </View>
 
           <View style={styles.heroStats}>
-            <HeroStat label="Disponibilité" value={`${partnerTerminal.uptime}%`} />
-            <HeroStat label="Sprays jour" value={partnerTerminal.spraysToday.toString()} />
-            <HeroStat label="Sync" value={partnerTerminal.lastSync} />
+            <HeroStat label="Bornes" value={`${onlineCount}/${totalCount || 0}`} />
+            <HeroStat label="Sprays jour" value={totalSpraysToday.toString()} />
+            <HeroStat label="Sync" value={formatRelative(lastSyncIso)} />
           </View>
         </LinearGradient>
 
@@ -69,7 +133,7 @@ export default function PartnerHomeScreen() {
             <Kpi icon="droplet" label="Parfums faibles" value={lowStock.toString()} onPress={() => router.push('/(partner)/stock')} />
             <Kpi icon="monitor" label="Pubs actives" value={activeAds.length.toString()} onPress={() => router.push('/(partner)/ads')} />
             <Kpi icon="dollar-sign" label="Revenus mois" value={`${totalRevenue.toLocaleString()} €`} onPress={() => router.push('/(partner)/revenue')} />
-            <Kpi icon="clock" label="Maintenance" value={partnerTerminal.nextMaintenance} onPress={() => router.push('/(partner)/profile')} />
+            <Kpi icon="clock" label="Maintenance" value={upcomingMaint ? formatRelative(upcomingMaint) : 'aucune'} onPress={() => router.push('/(partner)/profile')} />
           </View>
 
           <View style={styles.card}>
@@ -79,7 +143,7 @@ export default function PartnerHomeScreen() {
             </View>
             <ActionRow icon="package" title="Commander les parfums faibles" meta={`${lowStock} alertes stock`} onPress={() => router.push('/(partner)/stock')} />
             <ActionRow icon="monitor" title="Contrôler les pubs en diffusion" meta={`${activeAds.length} campagnes écran`} onPress={() => router.push('/(partner)/ads')} />
-            <ActionRow icon="credit-card" title="Suivre le paiement mensuel" meta={`Prévu le ${partnerTerminal.nextPayout}`} onPress={() => router.push('/(partner)/revenue')} />
+            <ActionRow icon="credit-card" title="Suivre le paiement mensuel" meta="Prévu fin de mois" onPress={() => router.push('/(partner)/revenue')} />
           </View>
 
           <View style={styles.card}>
