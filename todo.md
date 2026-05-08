@@ -287,15 +287,15 @@
 
 ### P3 — Stock
 - Backend
-  - [ ] Stock inventory (5 scent types: level %, capacity, daily use, refill ETA)
-  - [ ] Spray counter + daily usage
-  - [ ] Stock alerts (Faible / Rupture)
-  - [ ] Stock orders from partner
-  - [ ] Refill logging
+  - [x] Stock inventory (5 scent types: level %, capacity, daily use, refill ETA)
+  - [x] Spray counter + daily usage
+  - [x] Stock alerts (Faible / Rupture)
+  - [x] Stock orders from partner
+  - [x] Refill logging
 - Mobile (read-only)
-  - [ ] Stock screen view
+  - [x] Stock screen view
 - Web
-  - [ ] Stock screen + order action + refill log
+  - [x] Stock screen + order action + refill log
 
 ### P4 — Ads
 - Backend
