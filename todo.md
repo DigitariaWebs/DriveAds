@@ -36,10 +36,10 @@
 - [ ] Domain event triggers (campaign match, doc validated, invoice paid, stock alert, ad reported, terminal offline, validation decision)
 
 ### X4 — Audit trail + GDPR
-- [ ] Audit log collection (actor, action, target, before/after, timestamp)
-- [ ] GDPR data export per user
-- [ ] GDPR account deletion
-- [ ] Document retention policy
+- [x] Audit log collection (actor, action, target, before/after, timestamp) — `audit_log` collection + `lib/audit-service.ts` + admin /audit page; instrumented on user ban/unban/revoke, invoice send/mark-paid/delete, validations approve/reject/request-info, withdrawal process/reject, partner payout, settings update, reports generate/delete, Stripe webhook, GDPR export/delete
+- [x] GDPR data export per user — `POST /api/me/gdpr/export` returns ZIP of JSONs (user, role-specific resources, manifest); /mes-donnees page with download button
+- [x] GDPR account deletion — anonymization (PII zeroed, financial records kept per FR retention); `POST /api/me/gdpr/delete` self-service + confirm flag; Cloudinary documents + vehicle photos destroyed; `gdpr_deletions` compliance record
+- [x] Document retention policy — `lib/retention-policy.ts` consts (collection → days, legal basis, PII fields); GDPR audit report reads from this; no automated purge per scope decision
 
 ### X5 — Mobile UX cross-cutting
 - [ ] Loading skeletons on data screens
@@ -70,9 +70,9 @@
 - [x] Pending screen polls user status (15s)
 - [x] Forgot/reset/verify-email screens
 - [x] Logout clears session
-- [ ] Admin force-logout / ban / unban UI
-- [ ] Team member invite acceptance UI
-- [ ] SMTP credentials in prod
+- [x] Admin force-logout / ban / unban UI — /utilisateurs (delivered with AD7)
+- [x] Team member invite acceptance UI — /invite/[id] (delivered with A2)
+- [x] SMTP credentials in prod — Gmail App Password configured in `.env.local` (`SMTP_HOST=smtp.gmail.com`); migrate to dedicated transactional provider (SendGrid/Resend) before public launch
 - [ ] KYC (driver + company + partner) — deferred
 
 ---
@@ -332,63 +332,63 @@
 
 ### AD1 — Validations queue
 - Backend
-  - [ ] Combined queue (pending drivers + companies + partners)
-  - [ ] Per-submission detail with documents
-  - [ ] Approve / reject / request more info
-  - [ ] Notify submitter on decision
+  - [x] Combined queue (pending drivers + companies + partners)
+  - [x] Per-submission detail with documents
+  - [x] Approve / reject / request more info
+  - [x] Notify submitter on decision
 - Web
-  - [ ] Validation queue page + per-item detail
+  - [x] Validation queue page + per-item detail
 
 ### AD2 — Finances
 - Backend
-  - [ ] Invoices CRUD (statuses: payée / envoyée / en retard / brouillon)
-  - [ ] Driver commissions (per campaign, per km, batch payout)
-  - [ ] Internal expenses ledger (categories: fourniture / sous-traitance / infrastructure / logistique)
-  - [ ] Finance KPIs (MRR, collections, pending, commissions due)
+  - [x] Invoices CRUD (statuses: payée / envoyée / en retard / brouillon)
+  - [x] Driver commissions (per campaign, per km, batch payout)
+  - [x] Internal expenses ledger (categories: fourniture / sous-traitance / infrastructure / logistique)
+  - [x] Finance KPIs (MRR, collections, pending, commissions due)
 - Web
-  - [ ] Finances page (invoices, commissions, expenses, KPIs)
+  - [x] Finances page (invoices, commissions, expenses, KPIs)
 
 ### AD3 — Stripe + payment processing
 - Backend
-  - [ ] Stripe webhook handler (payment confirmation, dispute, refund)
-  - [ ] Payment status sync to invoices
+  - [x] Stripe webhook handler (payment confirmation, dispute, refund)
+  - [x] Payment status sync to invoices
 
 ### AD4 — Reports
 - Backend
-  - [ ] Async generation (PDF/CSV)
-  - [ ] Monthly summary
-  - [ ] Accounting export (invoices, commissions, expenses)
-  - [ ] Borne performance report
-  - [ ] Driver activity report
-  - [ ] Advertiser engagement report
-  - [ ] GDPR audit report
+  - [ ] Async generation (PDF/CSV) — deferred; current impl is inline (sync). Cron infra (CRON_SECRET / REPORT_BATCH_SIZE env) kept for future retrofit.
+  - [x] Monthly summary
+  - [x] Accounting export (invoices, commissions, expenses)
+  - [x] Borne performance report
+  - [x] Driver activity report
+  - [x] Advertiser engagement report
+  - [x] GDPR audit report
 - Web
-  - [ ] Reports page + download
+  - [x] Reports page + download
 
 ### AD5 — Dashboard / KPIs
 - Backend
-  - [ ] Admin aggregates (MRR + trend, active campaigns, validated drivers, pending counts, borne fleet health, validation queue, city distribution)
-  - [ ] Revenue chart data (Flocage vs Borne stacked, 30/90/365 day)
-  - [ ] Advertiser dashboard data (own impressions, % vs goal, sparkline, active campaigns, team activity, billing summary)
+  - [x] Admin aggregates (MRR + trend, active campaigns, validated drivers, pending counts, borne fleet health, validation queue, city distribution)
+  - [x] Revenue chart data (Flocage vs Borne stacked, 30/90/365 day) — hybrid: paid invoices for past, accrued campaign budgets for today
+  - [x] Advertiser dashboard data (own impressions, % vs goal, sparkline, active campaigns, team activity, billing summary)
 - Web
-  - [ ] Admin dashboard
-  - [ ] Advertiser dashboard
+  - [x] Admin dashboard
+  - [x] Advertiser dashboard
 
 ### AD6 — Search palette
 - Backend
-  - [ ] Global search (campaigns, drivers, companies, bornes)
+  - [x] Global search (campaigns, drivers, companies, bornes) — admin only, regex on key fields, 5 hits/type
 - Web
-  - [ ] cmd+K palette
+  - [x] cmd+K palette — debounced live search, keyboard nav
 
 ### AD7 — Users management
 - Backend
-  - [ ] Admin force-logout (Better Auth admin plugin)
-  - [ ] Ban / unban
+  - [x] Admin force-logout (Better Auth admin plugin) — `revoke-sessions` route
+  - [x] Ban / unban — `ban` + `unban` routes (better-auth admin plugin)
 - Web
-  - [ ] Users page with actions
+  - [x] Users page with actions — /utilisateurs
 
 ### AD8 — Global settings
 - Backend
-  - [ ] Platform settings collection
+  - [x] Platform settings collection — reuses app_config; `payments` + `partner_revenue` keys
 - Web
-  - [ ] Settings page (admin)
+  - [x] Settings page (admin) — /parametres-plateforme
