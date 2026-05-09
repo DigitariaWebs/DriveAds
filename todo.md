@@ -236,13 +236,13 @@
 
 ### A6 — Performance + impressions
 - Backend
-  - [ ] Campaign performance metrics (impressions, reach, km, hours)
-  - [ ] Impressions timeline
-  - [ ] Sparkline data
+  - [x] Campaign performance metrics (impressions, reach=unique terminals, km, campaign-days substituted for hours)
+  - [x] Impressions timeline (daily array sized to selected period 7d/30d/90d/365d)
+  - [x] Sparkline data — exposed via `impressionsTimeline` on portfolio + per-campaign endpoints
 - Mobile (read-only)
-  - [ ] Stats screen
+  - [x] Stats screen — wired to /api/me/performance with period selector
 - Web
-  - [ ] Performance dashboard per campaign
+  - [x] Performance dashboard per campaign — portfolio view at /enterprise/performance + per-campaign card on campaign detail (overview tab)
 
 ### A7 — Billing + invoices + payment methods
 - Backend
