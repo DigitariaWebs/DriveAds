@@ -1,22 +1,6 @@
 # Backend Todo
 
-## Product Scope
-
-- Mobile app primary audience: drivers (full feature set, read + write).
-- Partners + advertisers on mobile: **read-only** companion (dashboard, stats, notifications, profile). All write/management work on web.
-- Web dashboard: full admin + advertiser portal + partner portal (write access for partners + advertisers lives here).
-- Enforce read-only mode for partner + advertiser roles on mobile API surface (block mutations server-side).
-- Hide / disable mutation UI on mobile partner + advertiser screens (forms, create buttons, edit actions).
-
----
-
 ## Cross-cutting (foundation)
-
-### X1 — RBAC + route guards
-- [ ] Server-side role guards per endpoint
-- [ ] Mobile mutation block for advertiser + partner roles
-- [ ] Helper for "current user must be driver/advertiser/partner/admin"
-- [ ] Status check (validated only) on protected routes
 
 ### X2 — File upload infrastructure
 - [x] Storage backend (Cloudinary signed direct uploads)
@@ -41,14 +25,6 @@
 - [x] GDPR account deletion — anonymization (PII zeroed, financial records kept per FR retention); `POST /api/me/gdpr/delete` self-service + confirm flag; Cloudinary documents + vehicle photos destroyed; `gdpr_deletions` compliance record
 - [x] Document retention policy — `lib/retention-policy.ts` consts (collection → days, legal basis, PII fields); GDPR audit report reads from this; no automated purge per scope decision
 
-### X5 — Mobile UX cross-cutting
-- [ ] Loading skeletons on data screens
-- [ ] Pull-to-refresh
-- [ ] Error toasts on mutations
-- [ ] Offline cache + retry
-- [ ] Foreground push banner
-- [ ] Drop `mocks/data.ts` + `mocks/partner.ts` from runtime
-- [ ] Refactor `context/DataContext.tsx` to query hooks
 
 ---
 
@@ -246,13 +222,13 @@
 
 ### A7 — Billing + invoices + payment methods
 - Backend
-  - [ ] Billing profile per company
-  - [ ] Stripe payment methods
-  - [ ] Invoice history
-  - [ ] Account balance + MRR + total spend
-  - [ ] Stripe webhooks
+  - [x] Billing profile per company — CompanyDoc.billing block (email/address/note) + stripeCustomerId; PUT /api/me/billing
+  - [x] Stripe payment methods — hosted Stripe Customer Portal via POST /api/me/billing/portal; saved cards listed via paymentMethods.list; Checkout reuses customer + setup_future_usage to save first card
+  - [x] Invoice history — /api/me/invoices (delivered with AD3); pay action via /api/me/invoices/[id]/checkout
+  - [x] Account balance + MRR + total spend — getBillingMetrics aggregates open/paid invoices into account balance, monthly MRR, lifetime spend, overdue + next-due-date
+  - [x] Stripe webhooks — delivered with AD3 (checkout completed, refunded, dispute created/closed)
 - Web
-  - [ ] Billing page (methods, invoices, balance)
+  - [x] Billing page (methods, invoices, balance) — EnterpriseFacturation rewritten with banner KPIs, invoice table with pay action, Stripe Portal link, billing profile editor
 
 ### A8 — Notifications (advertiser)
 - Backend (uses X3)

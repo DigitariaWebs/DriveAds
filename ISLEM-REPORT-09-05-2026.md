@@ -7,10 +7,6 @@
 
 ## Work Completed
 
-All work today landed on the web repository. The mobile app received no
-commits — every endpoint added today is consumed by the existing admin and
-advertiser surfaces, which live on web.
-
 ---
 
 ### 1. Publeader — Validations workflow (AD1)
@@ -163,5 +159,74 @@ advertiser surfaces, which live on web.
 - Document retention policy moved to a single source of truth
   (`lib/retention-policy.ts`) consumed by both the GDPR audit report and
   this report. No automated purge — admins enforce manually.
+
+---
+
+### 9. Publeader — Advertiser performance + impressions (A6)
+
+- New `lib/campaign-performance-service.ts` exposes two aggregators:
+  - `getCompanyPerformance(companyId, period)` — portfolio-wide KPIs
+    (impressions total, reach via distinct terminals, lifetime km,
+    campaign-days = active days × drivers/terminals), daily impressions
+    timeline, top-6 cities by impressions, and a top-6 campaign share
+    with a tail bucketed into "Autres".
+  - `getCampaignPerformance(companyId, campaignId, period)` — same KPI
+    block scoped to one campaign + fill rate (drivers vs needed for
+    flocage, impressions vs target for borne) and budget-consumed %.
+- Periods: 7d / 30d / 90d / 365d. Endpoints:
+  `GET /api/me/performance?period=...` + `GET /api/me/campaigns/[id]/performance?period=...`.
+  Both `requireAdvertiser`-gated; per-campaign route checks ownership.
+- Web `EnterprisePerformance` page rewritten — period switch refetches,
+  KPI grid + impressions area chart + per-campaign share + city bars
+  all live. The campaign-detail overview tab gains a "Performance — 30 j"
+  panel with 4 KPI tiles, sparkline, and fill-rate progress.
+- Mobile advertiser `stats.tsx` rewritten with period pills and real
+  KPIs / bar chart (last 14 buckets) / top-cities / top-campaigns,
+  backed by a new typed client at `lib/performance-api.ts`.
+- Reach + hours from the original spec map to "unique terminals" and
+  "campaign-days" since the data model lacks viewer + hour tracking;
+  all four KPIs use only data we actually capture.
+
+---
+
+### 10. Publeader — Advertiser billing, payment methods & balance (A7)
+
+- `CompanyDoc` extended with an optional `billing` block (email, address,
+  note) and a `stripeCustomerId` field set lazily on first Checkout /
+  Portal call. Legacy companies don't need a backfill.
+- New `lib/billing-service.ts`:
+  - `ensureStripeCustomer(companyId)` — idempotent. Creates the Stripe
+    Customer with company name + billing email + EU VAT id and stores
+    the id on the doc.
+  - `createPortalSession(companyId, returnUrl)` — wraps
+    `stripe.billingPortal.sessions.create` so the advertiser manages
+    cards on Stripe-hosted pages (no in-app Elements, mirrors the AD3
+    Checkout pattern).
+  - `listSavedPaymentMethods(companyId)` — pulls cards live from Stripe
+    plus the customer's `default_payment_method`.
+  - `getBillingMetrics(companyId)` — account balance (open invoices),
+    monthly MRR (paid this month), lifetime spend, overdue subset,
+    and next-due-date.
+  - `getBillingDashboard(companyId)` — single-call merge of profile +
+    metrics + saved cards.
+- Existing AD3 Checkout flow upgraded: when a Stripe customer exists we
+  pass `customer` instead of `customer_email` and add
+  `payment_intent_data.setup_future_usage = "off_session"`, so the first
+  card the advertiser uses gets saved automatically and shows up at the
+  next Checkout — no manual "save card" step needed.
+- New routes: `GET /api/me/billing` (dashboard payload),
+  `PUT /api/me/billing` (billing email / address / note with email
+  regex validation, mirrored to Stripe Customer best-effort), and
+  `POST /api/me/billing/portal` (returns the hosted portal URL with a
+  sanitised return URL).
+- `EnterpriseFacturation` rewritten end-to-end: 4-KPI banner (solde dû,
+  MRR, total dépensé, prochaine échéance), invoice table from
+  `/api/me/invoices` with a Pay button per open row that delegates to
+  the existing `/api/me/invoices/[id]/checkout` endpoint, saved-cards
+  panel + "Gérer" button that redirects to the Stripe Portal, and a
+  billing-profile editor with read-only legal info (legalName, SIRET,
+  VAT — those still live in the A1 company-profile screen).
+- Stripe webhooks for payment confirmation + dispute + refund were
+  already delivered with AD3; A7 didn't add new event types.
 
 
